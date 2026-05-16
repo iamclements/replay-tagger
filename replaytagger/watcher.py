@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 import time
 from pathlib import Path
-from typing import Callable
+from collections.abc import Callable
 
 import structlog
 from watchdog.events import FileCreatedEvent, FileModifiedEvent, FileSystemEventHandler

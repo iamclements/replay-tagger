@@ -3,10 +3,10 @@
 Automatically tag NVIDIA Instant Replay clips with game metadata and sync them into organized Plex collections — with optional YouTube archiving.
 
 
-[![CI](https://github.com/danielclements/ReplayTagger/actions/workflows/ci.yml/badge.svg)](https://github.com/danielclements/ReplayTagger/actions/workflows/ci.yml)
-[![Security Scan](https://github.com/danielclements/ReplayTagger/actions/workflows/security.yml/badge.svg)](https://github.com/danielclements/ReplayTagger/actions/workflows/security.yml)
+[![CI](https://github.com/iamclements/replay-tagger/actions/workflows/ci.yml/badge.svg)](https://github.com/iamclements/replay-tagger/actions/workflows/ci.yml)
+[![Security Scan](https://github.com/iamclements/replay-tagger/actions/workflows/security.yml/badge.svg)](https://github.com/iamclements/replay-tagger/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue)](https://github.com/danielclements/ReplayTagger/pkgs/container/replaytagger)
+[![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue)](https://github.com/iamclements/replay-tagger/pkgs/container/replaytagger)
 
 ---
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
 
 import pytest
@@ -28,14 +27,18 @@ def test_loads_clips_dir_from_file(tmp_path: Path) -> None:
     assert cfg.clips_dir == Path("/mnt/nas/clips")
 
 
-def test_plex_token_from_env_overrides_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_plex_token_from_env_overrides_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     p = _write_config(tmp_path, {"plex": {"enabled": True, "token": "from_file"}})
     monkeypatch.setenv("PLEX_TOKEN", "from_env")
     cfg = load_config(p)
     assert cfg.plex.token == "from_env"
 
 
-def test_plex_url_from_env_overrides_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_plex_url_from_env_overrides_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     p = _write_config(tmp_path, {"plex": {"url": "http://file-host:32400"}})
     monkeypatch.setenv("PLEX_URL", "http://env-host:32400")
     cfg = load_config(p)

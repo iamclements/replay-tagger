@@ -4,14 +4,13 @@ import sys
 from pathlib import Path
 
 import click
+import structlog
 
 from replaytagger import __version__
+from replaytagger import logging as rt_logging
 from replaytagger.config import AppConfig, load_config
 from replaytagger.db import StateDB
-from replaytagger import logging as rt_logging
 from replaytagger.tagger import Tagger
-
-import structlog
 
 log = structlog.get_logger(__name__)
 
