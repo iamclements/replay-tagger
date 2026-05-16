@@ -23,6 +23,9 @@ services:
       - PLEX_VERIFY_SSL=${PLEX_VERIFY_SSL:-true}
       # YouTube privacy override (private | unlisted | public)
       - YOUTUBE_PRIVACY=${YOUTUBE_PRIVACY:-private}
+      # Uncomment to delay uploads until clips have been in the folder for N days
+      # (gives time to trim and rename before they appear on YouTube)
+      # - YOUTUBE_UPLOAD_AFTER_DAYS=3
       # Logging — use "text" for human-readable output during dev
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LOG_FORMAT=${LOG_FORMAT:-json}

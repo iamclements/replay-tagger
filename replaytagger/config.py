@@ -27,6 +27,7 @@ class YouTubeConfig:
     compress: bool = True
     resolution: int = 1080
     crf: int = 28
+    upload_after_days: int = 0
     credentials_file: Path = Path("youtube_credentials.json")
     token_file: Path = Path("data/youtube_token.json")
 
@@ -82,6 +83,12 @@ def load_config(config_path: Path) -> AppConfig:
 
     yt_credentials = youtube_data.get("credentials_file", "youtube_credentials.json")
     yt_token = youtube_data.get("token_file", "data/youtube_token.json")
+    yt_upload_after_days = int(
+        os.environ.get(
+            "YOUTUBE_UPLOAD_AFTER_DAYS",
+            youtube_data.get("upload_after_days", 0),
+        )
+    )
 
     youtube = YouTubeConfig(
         enabled=youtube_data.get("enabled", False),
@@ -90,6 +97,7 @@ def load_config(config_path: Path) -> AppConfig:
         compress=youtube_data.get("compress", True),
         resolution=youtube_data.get("resolution", 1080),
         crf=youtube_data.get("crf", 28),
+        upload_after_days=yt_upload_after_days,
         credentials_file=Path(yt_credentials),
         token_file=Path(yt_token),
     )
