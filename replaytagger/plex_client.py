@@ -13,9 +13,7 @@ log = structlog.get_logger(__name__)
 class PlexClient:
     """Thin wrapper around plexapi for ReplayTagger's needs."""
 
-    def __init__(
-        self, url: str, token: str, library_name: str, verify_ssl: bool = True
-    ) -> None:
+    def __init__(self, url: str, token: str, library_name: str, verify_ssl: bool = True) -> None:
         self._url = url
         self._token = token
         self._library_name = library_name

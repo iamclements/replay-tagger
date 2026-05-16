@@ -64,9 +64,7 @@ def load_config(config_path: Path) -> AppConfig:
     plex_token = os.environ.get("PLEX_TOKEN", plex_data.get("token", ""))
     plex_url = os.environ.get("PLEX_URL", plex_data.get("url", "http://localhost:32400"))
     _verify_ssl_env = os.environ.get("PLEX_VERIFY_SSL", "").lower()
-    plex_verify_ssl = (
-        False if _verify_ssl_env == "false" else plex_data.get("verify_ssl", True)
-    )
+    plex_verify_ssl = False if _verify_ssl_env == "false" else plex_data.get("verify_ssl", True)
     clips_dir = Path(os.environ.get("CLIPS_DIR", data.get("clips_dir", "/clips")))
     data_dir = Path(os.environ.get("DATA_DIR", data.get("data_dir", "data")))
     log_level = os.environ.get("LOG_LEVEL", logging_data.get("level", "INFO"))
