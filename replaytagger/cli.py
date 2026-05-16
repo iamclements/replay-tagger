@@ -261,8 +261,7 @@ def youtube_sync(ctx: click.Context) -> None:
         if f.is_file() and f.suffix.lower() in config.extensions
     ]
 
-    now = datetime.now(UTC)
-    uploaded = skipped = deferred = 0
+    uploaded = skipped = 0
 
     for clip in clips:
         bound = log.bind(file=clip.name, game=clip.parent.name)
@@ -275,23 +274,12 @@ def youtube_sync(ctx: click.Context) -> None:
             skipped += 1
             continue
 
-        first_seen = db.get_first_seen(clip)
-        if first_seen is None:
+        if db.get_first_seen(clip) is None:
             bound.debug("skipped_sync", reason="not_tagged")
             continue
 
-        age_days = (now - first_seen).days
-        if age_days < config.youtube.upload_after_days:
-            bound.debug(
-                "upload_deferred",
-                age_days=age_days,
-                required=config.youtube.upload_after_days,
-            )
-            deferred += 1
-            continue
-
         if dry_run:
-            bound.info("would_upload", age_days=age_days)
+            bound.info("would_upload", file=clip.name)
             continue
 
         try:
@@ -310,7 +298,7 @@ def youtube_sync(ctx: click.Context) -> None:
         except Exception as exc:
             bound.error("upload_failed", error=str(exc))
 
-    log.info("youtube_sync_complete", uploaded=uploaded, skipped=skipped, deferred=deferred)
+    log.info("youtube_sync_complete", uploaded=uploaded, skipped=skipped)
 
 
 @main.command()
