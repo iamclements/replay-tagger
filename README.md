@@ -135,6 +135,7 @@ replaytagger [--config PATH] [--dry-run] COMMAND
 Commands:
   run           Scan all clips once, tag untagged files, then exit
   watch         Watch for new clips and process them as they arrive
+  plex-auth     Run the Plex PIN OAuth flow (opens browser)
   upload FILE   Upload a single clip to YouTube
   youtube-auth  Run the YouTube OAuth2 flow (opens browser)
   status        Show statistics from the state database
@@ -150,6 +151,31 @@ replaytagger upload "clips/Apex Legends/clip1.mp4" --privacy unlisted
 # Check tagging and upload counts
 replaytagger status
 ```
+
+---
+
+## Plex Setup
+
+1. Run the auth flow (opens a browser to plex.tv):
+   ```bash
+   replaytagger plex-auth
+   ```
+2. Sign in and click **Allow** when prompted
+3. The command prints a permanent token — add it to your `.env`:
+   ```bash
+   PLEX_TOKEN=your_token_here
+   PLEX_URL=http://192.168.1.x:32400
+   ```
+4. Enable Plex in `config.yaml`:
+   ```yaml
+   plex:
+     enabled: true
+     library_name: "Game Clips"
+     auto_scan: true
+     auto_create_collections: true
+   ```
+
+The token is permanent and tied to your Plex account. It is stored only in your local `.env` file, which is excluded from git.
 
 ---
 

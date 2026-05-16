@@ -175,6 +175,19 @@ def watch(ctx: click.Context) -> None:
     )
 
 
+@main.command("plex-auth")
+@click.pass_context
+def plex_auth(ctx: click.Context) -> None:
+    """Run the Plex PIN OAuth flow to get a permanent auth token."""
+    config: AppConfig = ctx.obj["config"]
+    from replaytagger.plex_auth import authenticate
+
+    token = authenticate(config.data_dir)
+    click.echo("\nAuthorization successful!")
+    click.echo("Add the following to your .env file:")
+    click.echo(f"\n  PLEX_TOKEN={token}\n")
+
+
 @main.command("youtube-auth")
 @click.pass_context
 def youtube_auth(ctx: click.Context) -> None:

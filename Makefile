@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := help
-.PHONY: help venv install lint format test test-cov docker-build docker-up docker-down run watch clean
+.PHONY: help venv install lint format test test-cov docker-build docker-up docker-down run watch plex-auth youtube-auth status clean
 
 VENV := .venv
 PYTHON := $(VENV)/bin/python
@@ -46,6 +46,9 @@ run: ## Process all clips once and exit
 
 watch: ## Watch for new clips (runs forever)
 	replaytagger watch
+
+plex-auth: ## Authorize Plex via PIN OAuth flow (opens browser)
+	replaytagger plex-auth
 
 youtube-auth: ## Authorize YouTube uploads (opens browser)
 	replaytagger youtube-auth
