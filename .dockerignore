@@ -1,0 +1,35 @@
+# Git
+.git
+.gitignore
+
+# Development artifacts
+.mypy_cache
+.ruff_cache
+.pytest_cache
+htmlcov
+.coverage
+dist
+build
+*.egg-info
+
+# Local config and secrets — never bake into image
+.env
+config.yaml
+data/
+clips/
+youtube_credentials.json
+youtube_token.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docs and non-runtime files
+README.md
+CHANGELOG.md
+CONTRIBUTING.md
+LICENSE
+Makefile
+images/
+*.ps1
+*.md
