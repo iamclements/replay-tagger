@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
 # ── Build stage: install Python dependencies into an isolated prefix ──────────
-FROM python:3.12-slim AS builder
+FROM python:3.14-slim AS builder
 
 WORKDIR /build
 
@@ -12,7 +12,7 @@ RUN pip install --no-cache-dir --prefix=/install .
 
 
 # ── Runtime stage: minimal image with ffmpeg ──────────────────────────────────
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 LABEL org.opencontainers.image.title="ReplayTagger" \
       org.opencontainers.image.description="Auto-tag NVIDIA game clips for Plex collections" \
