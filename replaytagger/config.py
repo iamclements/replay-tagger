@@ -1,0 +1,102 @@
+from __future__ import annotations
+
+import os
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import yaml
+
+
+@dataclass
+class PlexConfig:
+    enabled: bool = False
+    url: str = "http://localhost:32400"
+    token: str = field(default="", repr=False)
+    library_name: str = "Game Clips"
+    auto_scan: bool = True
+    auto_create_collections: bool = True
+
+
+@dataclass
+class YouTubeConfig:
+    enabled: bool = False
+    auto_upload: bool = False
+    privacy: str = "private"
+    compress: bool = True
+    resolution: int = 1080
+    crf: int = 28
+    credentials_file: Path = Path("youtube_credentials.json")
+    token_file: Path = Path("data/youtube_token.json")
+
+
+@dataclass
+class LoggingConfig:
+    level: str = "INFO"
+    format: str = "json"
+
+
+@dataclass
+class AppConfig:
+    clips_dir: Path = Path("/clips")
+    extensions: list[str] = field(default_factory=lambda: [".mp4", ".mkv", ".mov"])
+    data_dir: Path = Path("data")
+    ffmpeg_path: str = "ffmpeg"
+    ffprobe_path: str = "ffprobe"
+    debounce_seconds: int = 10
+    plex: PlexConfig = field(default_factory=PlexConfig)
+    youtube: YouTubeConfig = field(default_factory=YouTubeConfig)
+    logging: LoggingConfig = field(default_factory=LoggingConfig)
+
+
+def load_config(config_path: Path) -> AppConfig:
+    data: dict = {}
+    if config_path.exists():
+        with open(config_path) as f:
+            data = yaml.safe_load(f) or {}
+
+    plex_data = data.get("plex", {})
+    youtube_data = data.get("youtube", {})
+    logging_data = data.get("logging", {})
+
+    # Environment variables override config file values — secrets never go in config.yaml
+    plex_token = os.environ.get("PLEX_TOKEN", plex_data.get("token", ""))
+    plex_url = os.environ.get("PLEX_URL", plex_data.get("url", "http://localhost:32400"))
+    clips_dir = Path(os.environ.get("CLIPS_DIR", data.get("clips_dir", "/clips")))
+    data_dir = Path(os.environ.get("DATA_DIR", data.get("data_dir", "data")))
+    log_level = os.environ.get("LOG_LEVEL", logging_data.get("level", "INFO"))
+    log_format = os.environ.get("LOG_FORMAT", logging_data.get("format", "json"))
+
+    plex = PlexConfig(
+        enabled=plex_data.get("enabled", False),
+        url=plex_url,
+        token=plex_token,
+        library_name=plex_data.get("library_name", "Game Clips"),
+        auto_scan=plex_data.get("auto_scan", True),
+        auto_create_collections=plex_data.get("auto_create_collections", True),
+    )
+
+    yt_credentials = youtube_data.get("credentials_file", "youtube_credentials.json")
+    yt_token = youtube_data.get("token_file", "data/youtube_token.json")
+
+    youtube = YouTubeConfig(
+        enabled=youtube_data.get("enabled", False),
+        auto_upload=youtube_data.get("auto_upload", False),
+        privacy=os.environ.get("YOUTUBE_PRIVACY", youtube_data.get("privacy", "private")),
+        compress=youtube_data.get("compress", True),
+        resolution=youtube_data.get("resolution", 1080),
+        crf=youtube_data.get("crf", 28),
+        credentials_file=Path(yt_credentials),
+        token_file=Path(yt_token),
+    )
+
+    return AppConfig(
+        clips_dir=clips_dir,
+        extensions=data.get("extensions", [".mp4", ".mkv", ".mov"]),
+        data_dir=data_dir,
+        ffmpeg_path=data.get("ffmpeg_path", "ffmpeg"),
+        ffprobe_path=data.get("ffprobe_path", "ffprobe"),
+        debounce_seconds=data.get("debounce_seconds", 10),
+        plex=plex,
+        youtube=youtube,
+        logging=LoggingConfig(level=log_level, format=log_format),
+    )
