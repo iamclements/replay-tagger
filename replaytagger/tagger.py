@@ -33,9 +33,12 @@ class Tagger:
         result = subprocess.run(
             [
                 self.ffprobe_path,
-                "-v", "quiet",
-                "-print_format", "json",
-                "-show_entries", "format_tags=genre",
+                "-v",
+                "quiet",
+                "-print_format",
+                "json",
+                "-show_entries",
+                "format_tags=genre",
                 str(file_path),
             ],
             capture_output=True,
@@ -67,9 +70,7 @@ class Tagger:
         original_mtime = file_path.stat().st_mtime
 
         # Write to a temp file in the same directory to allow atomic replace
-        tmp_fd, tmp_name = tempfile.mkstemp(
-            suffix=".tmp.mp4", dir=file_path.parent
-        )
+        tmp_fd, tmp_name = tempfile.mkstemp(suffix=".tmp.mp4", dir=file_path.parent)
         tmp_path = Path(tmp_name)
         os.close(tmp_fd)
 
@@ -77,9 +78,12 @@ class Tagger:
             result = subprocess.run(
                 [
                     self.ffmpeg_path,
-                    "-i", str(file_path),
-                    "-metadata", f"genre={game_name}",
-                    "-codec", "copy",
+                    "-i",
+                    str(file_path),
+                    "-metadata",
+                    f"genre={game_name}",
+                    "-codec",
+                    "copy",
                     str(tmp_path),
                     "-y",
                 ],

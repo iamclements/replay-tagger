@@ -22,6 +22,7 @@ def _build_plex(config: AppConfig):  # type: ignore[no-untyped-def]
         log.warning("plex_disabled", reason="PLEX_TOKEN not set")
         return None
     from replaytagger.plex_client import PlexClient
+
     return PlexClient(config.plex.url, config.plex.token, config.plex.library_name)
 
 
@@ -29,6 +30,7 @@ def _build_youtube(config: AppConfig):  # type: ignore[no-untyped-def]
     if not config.youtube.enabled:
         return None
     from replaytagger.youtube_client import YouTubeClient
+
     client = YouTubeClient(config.youtube.credentials_file, config.youtube.token_file)
     client.authenticate()
     return client

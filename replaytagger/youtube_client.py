@@ -42,9 +42,7 @@ class YouTubeClient:
                         f"YouTube credentials file not found: {self.credentials_file}\n"
                         "Download it from Google Cloud Console > APIs & Services > Credentials."
                     )
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    str(self.credentials_file), SCOPES
-                )
+                flow = InstalledAppFlow.from_client_secrets_file(str(self.credentials_file), SCOPES)
                 creds = flow.run_local_server(port=0)
 
             self.token_file.parent.mkdir(parents=True, exist_ok=True)
@@ -65,20 +63,29 @@ class YouTubeClient:
         tmp_fd, tmp_name = tempfile.mkstemp(suffix=".compressed.mp4")
         output_path = Path(tmp_name)
         import os
+
         os.close(tmp_fd)
 
         log.info("compressing", file=input_path.name, resolution=resolution, crf=crf)
         result = subprocess.run(
             [
                 ffmpeg_path,
-                "-i", str(input_path),
-                "-c:v", "libx264",
-                "-crf", str(crf),
-                "-preset", "fast",
-                "-vf", f"scale=-2:{resolution}",
-                "-c:a", "aac",
-                "-b:a", "128k",
-                "-movflags", "+faststart",
+                "-i",
+                str(input_path),
+                "-c:v",
+                "libx264",
+                "-crf",
+                str(crf),
+                "-preset",
+                "fast",
+                "-vf",
+                f"scale=-2:{resolution}",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "128k",
+                "-movflags",
+                "+faststart",
                 str(output_path),
                 "-y",
             ],
