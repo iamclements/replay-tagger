@@ -61,12 +61,12 @@ def _process_file(
 
     tagged = tagger.tag(file_path, game_name, dry_run=dry_run)
 
-    if tagged:
-        if not dry_run:
-            db.mark_tagged(file_path, game_name)
+    if not tagged and not dry_run and tagger.get_genre(file_path) == game_name:
+        # Genre was written in a prior run but not recorded in DB — backfill it
+        tagged = True
 
-        if plex and config.plex.auto_create_collections:
-            plex.ensure_collection(game_name)
+    if tagged and not dry_run:
+        db.mark_tagged(file_path, game_name)
 
     if youtube and config.youtube.auto_upload and not dry_run:
         if db.get_youtube_id(file_path) is not None:
@@ -137,6 +137,11 @@ def run(ctx: click.Context) -> None:
             _process_file(clip, config, tagger, db, plex, youtube, dry_run)
         except Exception as exc:
             log.error("file_error", file=clip.name, error=str(exc))
+
+    # Ensure collections exist for every game in the clips directory
+    if plex and config.plex.auto_create_collections:
+        for game in {f.parent.name for f in clips}:
+            plex.ensure_collection(game)
 
     # Trigger a single Plex scan after all files are processed
     if plex and config.plex.auto_scan:
