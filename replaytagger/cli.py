@@ -28,7 +28,9 @@ def _build_plex(config: AppConfig):  # type: ignore[no-untyped-def]
         return None
     from replaytagger.plex_client import PlexClient
 
-    return PlexClient(config.plex.url, config.plex.token, config.plex.library_name)
+    return PlexClient(
+        config.plex.url, config.plex.token, config.plex.library_name, config.plex.verify_ssl
+    )
 
 
 def _build_youtube(config: AppConfig):  # type: ignore[no-untyped-def]

@@ -19,6 +19,8 @@ services:
       # Plex — set these in your .env file, never commit secrets
       - PLEX_TOKEN=${PLEX_TOKEN:-}
       - PLEX_URL=${PLEX_URL:-http://localhost:32400}
+      # Set to false if using HTTPS with an IP address (Plex self-signed cert)
+      - PLEX_VERIFY_SSL=${PLEX_VERIFY_SSL:-true}
       # YouTube privacy override (private | unlisted | public)
       - YOUTUBE_PRIVACY=${YOUTUBE_PRIVACY:-private}
       # Logging — use "text" for human-readable output during dev

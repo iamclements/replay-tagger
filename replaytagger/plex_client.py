@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import warnings
+
+import requests
 import structlog
 from plexapi.exceptions import NotFound, Unauthorized
 from plexapi.server import PlexServer
@@ -10,16 +13,24 @@ log = structlog.get_logger(__name__)
 class PlexClient:
     """Thin wrapper around plexapi for ReplayTagger's needs."""
 
-    def __init__(self, url: str, token: str, library_name: str) -> None:
+    def __init__(
+        self, url: str, token: str, library_name: str, verify_ssl: bool = True
+    ) -> None:
         self._url = url
         self._token = token
         self._library_name = library_name
+        self._verify_ssl = verify_ssl
         self._server: PlexServer | None = None
         self._connect()
 
     def _connect(self) -> None:
         try:
-            self._server = PlexServer(self._url, self._token)  # type: ignore[no-untyped-call]
+            session = requests.Session()
+            session.verify = self._verify_ssl
+            if not self._verify_ssl:
+                log.warning("plex_ssl_verification_disabled", url=self._url)
+                warnings.filterwarnings("ignore", message="Unverified HTTPS request")
+            self._server = PlexServer(self._url, self._token, session=session)  # type: ignore[no-untyped-call]
             log.info("plex_connected", url=self._url)
         except Unauthorized:
             log.error("plex_auth_failed", url=self._url, hint="Check PLEX_TOKEN")
@@ -63,7 +74,6 @@ class PlexClient:
             )
             log.info("collection_created", game=game_name)
         except Exception as exc:
-            # Collection creation is best-effort; tagging still succeeded
             log.warning("collection_create_failed", game=game_name, error=str(exc))
 
     def list_collections(self) -> list[str]:

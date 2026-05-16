@@ -16,6 +16,7 @@ class PlexConfig:
     library_name: str = "Game Clips"
     auto_scan: bool = True
     auto_create_collections: bool = True
+    verify_ssl: bool = True
 
 
 @dataclass
@@ -62,6 +63,10 @@ def load_config(config_path: Path) -> AppConfig:
     # Environment variables override config file values — secrets never go in config.yaml
     plex_token = os.environ.get("PLEX_TOKEN", plex_data.get("token", ""))
     plex_url = os.environ.get("PLEX_URL", plex_data.get("url", "http://localhost:32400"))
+    _verify_ssl_env = os.environ.get("PLEX_VERIFY_SSL", "").lower()
+    plex_verify_ssl = (
+        False if _verify_ssl_env == "false" else plex_data.get("verify_ssl", True)
+    )
     clips_dir = Path(os.environ.get("CLIPS_DIR", data.get("clips_dir", "/clips")))
     data_dir = Path(os.environ.get("DATA_DIR", data.get("data_dir", "data")))
     log_level = os.environ.get("LOG_LEVEL", logging_data.get("level", "INFO"))
@@ -74,6 +79,7 @@ def load_config(config_path: Path) -> AppConfig:
         library_name=plex_data.get("library_name", "Game Clips"),
         auto_scan=plex_data.get("auto_scan", True),
         auto_create_collections=plex_data.get("auto_create_collections", True),
+        verify_ssl=plex_verify_ssl,
     )
 
     yt_credentials = youtube_data.get("credentials_file", "youtube_credentials.json")
