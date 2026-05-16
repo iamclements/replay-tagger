@@ -61,7 +61,7 @@ def authenticate(data_dir: Path) -> str:
         f"&context[device][product]={PRODUCT}"
     )
 
-    print(f"Opening Plex authorization in your browser...")
+    print("Opening Plex authorization in your browser...")
     print(f"If it doesn't open automatically, visit:\n  {auth_url}\n")
     webbrowser.open(auth_url)
 
