@@ -1,0 +1,238 @@
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+import click
+
+from replaytagger import __version__
+from replaytagger.config import AppConfig, load_config
+from replaytagger.db import StateDB
+from replaytagger import logging as rt_logging
+from replaytagger.tagger import Tagger
+
+import structlog
+
+log = structlog.get_logger(__name__)
+
+
+def _build_plex(config: AppConfig):  # type: ignore[no-untyped-def]
+    if not config.plex.enabled:
+        return None
+    if not config.plex.token:
+        log.warning("plex_disabled", reason="PLEX_TOKEN not set")
+        return None
+    from replaytagger.plex_client import PlexClient
+    return PlexClient(config.plex.url, config.plex.token, config.plex.library_name)
+
+
+def _build_youtube(config: AppConfig):  # type: ignore[no-untyped-def]
+    if not config.youtube.enabled:
+        return None
+    from replaytagger.youtube_client import YouTubeClient
+    client = YouTubeClient(config.youtube.credentials_file, config.youtube.token_file)
+    client.authenticate()
+    return client
+
+
+def _process_file(
+    file_path: Path,
+    config: AppConfig,
+    tagger: Tagger,
+    db: StateDB,
+    plex,  # type: ignore[no-untyped-def]
+    youtube,  # type: ignore[no-untyped-def]
+    dry_run: bool,
+) -> None:
+    game_name = file_path.parent.name
+    bound = log.bind(file=file_path.name, game=game_name)
+
+    if db.is_tagged(file_path):
+        bound.debug("skipped", reason="already_tagged")
+        return
+
+    tagged = tagger.tag(file_path, game_name, dry_run=dry_run)
+
+    if tagged:
+        if not dry_run:
+            db.mark_tagged(file_path, game_name)
+
+        if plex and config.plex.auto_create_collections:
+            plex.ensure_collection(game_name)
+
+    if youtube and config.youtube.auto_upload and not dry_run:
+        if db.get_youtube_id(file_path) is not None:
+            bound.debug("skipped_upload", reason="already_uploaded")
+            return
+        try:
+            video_id = youtube.upload(
+                file_path,
+                game_name,
+                privacy=config.youtube.privacy,
+                compress=config.youtube.compress,
+                ffmpeg_path=config.ffmpeg_path,
+                resolution=config.youtube.resolution,
+                crf=config.youtube.crf,
+            )
+            db.mark_uploaded(file_path, video_id)
+        except Exception as exc:
+            bound.error("upload_failed", error=str(exc))
+
+
+@click.group()
+@click.version_option(__version__)
+@click.option(
+    "--config",
+    "config_path",
+    default="config.yaml",
+    show_default=True,
+    type=click.Path(dir_okay=False, path_type=Path),
+    help="Path to config.yaml",
+)
+@click.option("--dry-run", is_flag=True, help="Preview changes without modifying files")
+@click.pass_context
+def main(ctx: click.Context, config_path: Path, dry_run: bool) -> None:
+    """ReplayTagger — auto-tag NVIDIA game clips for Plex collections."""
+    ctx.ensure_object(dict)
+    cfg = load_config(config_path)
+    rt_logging.configure(cfg.logging.level, cfg.logging.format)
+    ctx.obj["config"] = cfg
+    ctx.obj["dry_run"] = dry_run
+
+
+@main.command()
+@click.pass_context
+def run(ctx: click.Context) -> None:
+    """Scan all clips once, tag untagged files, then exit."""
+    config: AppConfig = ctx.obj["config"]
+    dry_run: bool = ctx.obj["dry_run"]
+
+    db = StateDB(config.data_dir / "state.db")
+    tagger = Tagger(config.ffmpeg_path, config.ffprobe_path)
+    plex = _build_plex(config)
+    youtube = _build_youtube(config)
+
+    if not config.clips_dir.exists():
+        log.error("clips_dir_not_found", path=str(config.clips_dir))
+        sys.exit(1)
+
+    clips = [
+        f
+        for f in config.clips_dir.rglob("*")
+        if f.is_file() and f.suffix.lower() in config.extensions
+    ]
+
+    log.info("scan_started", total=len(clips), dry_run=dry_run)
+
+    for clip in clips:
+        try:
+            _process_file(clip, config, tagger, db, plex, youtube, dry_run)
+        except Exception as exc:
+            log.error("file_error", file=clip.name, error=str(exc))
+
+    # Trigger a single Plex scan after all files are processed
+    if plex and config.plex.auto_scan:
+        plex.scan()
+
+    stats = db.stats()
+    log.info("scan_complete", **stats)
+
+
+@main.command()
+@click.pass_context
+def watch(ctx: click.Context) -> None:
+    """Watch for new clips and process them as they arrive (runs forever)."""
+    from replaytagger.watcher import watch as watch_clips
+
+    config: AppConfig = ctx.obj["config"]
+    dry_run: bool = ctx.obj["dry_run"]
+
+    db = StateDB(config.data_dir / "state.db")
+    tagger = Tagger(config.ffmpeg_path, config.ffprobe_path)
+    plex = _build_plex(config)
+    youtube = _build_youtube(config)
+
+    if not config.clips_dir.exists():
+        log.error("clips_dir_not_found", path=str(config.clips_dir))
+        sys.exit(1)
+
+    # Process existing untagged files before entering watch mode
+    log.info("processing_existing_clips")
+    run.invoke(ctx)
+
+    def on_new_clip(file_path: Path) -> None:
+        try:
+            _process_file(file_path, config, tagger, db, plex, youtube, dry_run)
+            if plex and config.plex.auto_scan:
+                plex.scan()
+        except Exception as exc:
+            log.error("watch_file_error", file=file_path.name, error=str(exc))
+
+    watch_clips(
+        config.clips_dir,
+        on_new_clip,
+        config.extensions,
+        config.debounce_seconds,
+    )
+
+
+@main.command("youtube-auth")
+@click.pass_context
+def youtube_auth(ctx: click.Context) -> None:
+    """Run the YouTube OAuth2 flow to authorize uploads."""
+    config: AppConfig = ctx.obj["config"]
+    from replaytagger.youtube_client import YouTubeClient
+
+    client = YouTubeClient(config.youtube.credentials_file, config.youtube.token_file)
+    client.authenticate()
+    click.echo("YouTube authentication successful. Token saved.")
+
+
+@main.command()
+@click.argument("file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option(
+    "--privacy",
+    type=click.Choice(["private", "unlisted", "public"]),
+    default=None,
+    help="Override privacy setting from config",
+)
+@click.pass_context
+def upload(ctx: click.Context, file: Path, privacy: str | None) -> None:
+    """Upload a single clip to YouTube."""
+    config: AppConfig = ctx.obj["config"]
+    db = StateDB(config.data_dir / "state.db")
+
+    if db.get_youtube_id(file) is not None:
+        click.echo(f"Already uploaded: {file.name}")
+        return
+
+    from replaytagger.youtube_client import YouTubeClient
+
+    client = YouTubeClient(config.youtube.credentials_file, config.youtube.token_file)
+    client.authenticate()
+
+    game_name = file.parent.name
+    effective_privacy = privacy or config.youtube.privacy
+
+    video_id = client.upload(
+        file,
+        game_name,
+        privacy=effective_privacy,
+        compress=config.youtube.compress,
+        ffmpeg_path=config.ffmpeg_path,
+        resolution=config.youtube.resolution,
+        crf=config.youtube.crf,
+    )
+    db.mark_uploaded(file, video_id)
+    click.echo(f"Uploaded: https://youtu.be/{video_id}")
+
+
+@main.command()
+@click.pass_context
+def status(ctx: click.Context) -> None:
+    """Show statistics from the state database."""
+    config: AppConfig = ctx.obj["config"]
+    db = StateDB(config.data_dir / "state.db")
+    stats = db.stats()
+    click.echo(f"Tagged clips : {stats['total_tagged']}")
+    click.echo(f"YT uploads   : {stats['total_uploaded']}")
