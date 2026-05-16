@@ -47,7 +47,7 @@ class StateDB:
         if row is None:
             return False
         current_size, current_mtime = self._fingerprint(file_path)
-        return row["file_size"] == current_size and abs(row["mtime"] - current_mtime) < 1.0
+        return bool(row["file_size"] == current_size and abs(row["mtime"] - current_mtime) < 1.0)
 
     def mark_tagged(self, file_path: Path, game_name: str) -> None:
         size, mtime = self._fingerprint(file_path)

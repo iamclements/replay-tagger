@@ -2,9 +2,14 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import click
 import structlog
+
+if TYPE_CHECKING:
+    from replaytagger.plex_client import PlexClient
+    from replaytagger.youtube_client import YouTubeClient
 
 from replaytagger import __version__
 from replaytagger import logging as rt_logging
@@ -41,8 +46,8 @@ def _process_file(
     config: AppConfig,
     tagger: Tagger,
     db: StateDB,
-    plex,  # type: ignore[no-untyped-def]
-    youtube,  # type: ignore[no-untyped-def]
+    plex: PlexClient | None,
+    youtube: YouTubeClient | None,
     dry_run: bool,
 ) -> None:
     game_name = file_path.parent.name

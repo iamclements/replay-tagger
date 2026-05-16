@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import yaml
 
@@ -49,7 +50,7 @@ class AppConfig:
 
 
 def load_config(config_path: Path) -> AppConfig:
-    data: dict = {}
+    data: dict[str, Any] = {}
     if config_path.exists():
         with open(config_path) as f:
             data = yaml.safe_load(f) or {}

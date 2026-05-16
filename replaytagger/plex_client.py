@@ -19,7 +19,7 @@ class PlexClient:
 
     def _connect(self) -> None:
         try:
-            self._server = PlexServer(self._url, self._token)
+            self._server = PlexServer(self._url, self._token)  # type: ignore[no-untyped-call]
             log.info("plex_connected", url=self._url)
         except Unauthorized:
             log.error("plex_auth_failed", url=self._url, hint="Check PLEX_TOKEN")

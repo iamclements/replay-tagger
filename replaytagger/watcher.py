@@ -30,11 +30,11 @@ class _ClipEventHandler(FileSystemEventHandler):
 
     def on_created(self, event: FileCreatedEvent) -> None:  # type: ignore[override]
         if not event.is_directory:
-            self._schedule(event.src_path)
+            self._schedule(str(event.src_path))
 
     def on_modified(self, event: FileModifiedEvent) -> None:  # type: ignore[override]
         if not event.is_directory:
-            self._schedule(event.src_path)
+            self._schedule(str(event.src_path))
 
     def _schedule(self, path: str) -> None:
         if not any(path.lower().endswith(ext) for ext in self.extensions):

@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import structlog
 from google.auth.transport.requests import Request
@@ -24,18 +25,18 @@ class YouTubeClient:
     def __init__(self, credentials_file: Path, token_file: Path) -> None:
         self.credentials_file = credentials_file
         self.token_file = token_file
-        self._service = None
+        self._service: Any = None
 
     def authenticate(self) -> None:
         """Run OAuth2 flow. Opens a browser on first run; refreshes silently after."""
         creds: Credentials | None = None
 
         if self.token_file.exists():
-            creds = Credentials.from_authorized_user_file(str(self.token_file), SCOPES)
+            creds = Credentials.from_authorized_user_file(str(self.token_file), SCOPES)  # type: ignore[no-untyped-call]
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+                creds.refresh(Request())  # type: ignore[no-untyped-call]
             else:
                 if not self.credentials_file.exists():
                     raise FileNotFoundError(
