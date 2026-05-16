@@ -5,7 +5,7 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
-COPY pyproject.toml .
+COPY pyproject.toml README.md LICENSE ./
 COPY replaytagger/ replaytagger/
 
 RUN pip install --no-cache-dir --prefix=/install .
