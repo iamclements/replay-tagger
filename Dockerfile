@@ -16,7 +16,7 @@ FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="ReplayTagger" \
       org.opencontainers.image.description="Auto-tag NVIDIA game clips for Plex collections" \
-      org.opencontainers.image.source="https://github.com/danielclements/ReplayTagger" \
+      org.opencontainers.image.source="https://github.com/iamclements/replay-tagger" \
       org.opencontainers.image.licenses="MIT"
 
 RUN apt-get update \
@@ -26,8 +26,6 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY --from=builder /install /usr/local
-COPY replaytagger/ replaytagger/
-COPY config.yaml.example /app/config.yaml.example
 
 # Non-root user for security
 RUN useradd --create-home --uid 1000 replaytagger \
