@@ -1,0 +1,56 @@
+# ── Secrets — never commit these ──────────────────────────────────────────────
+.env
+config.yaml
+youtube_credentials.json
+data/youtube_token.json
+
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+*.whl
+
+# ── Testing & coverage ────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+
+# ── Type checking & linting ───────────────────────────────────────────────────
+.mypy_cache/
+.ruff_cache/
+
+# ── State database (local runtime artifact) ───────────────────────────────────
+data/
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+clips/
+
+# ── macOS ─────────────────────────────────────────────────────────────────────
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ── Windows ───────────────────────────────────────────────────────────────────
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+*.cab
+*.msi
+
+# ── Editors ───────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+*.history/
+*.vsix
+*.ps1.bak
+*.log
