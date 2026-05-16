@@ -22,9 +22,20 @@ class StateDB:
                     file_size      INTEGER NOT NULL,
                     mtime          REAL NOT NULL,
                     tagged_at      TEXT NOT NULL,
+                    first_seen_at  TEXT,
+                    content_hash   TEXT,
                     youtube_id     TEXT
                 )
             """)
+            self._migrate(conn)
+
+    def _migrate(self, conn: sqlite3.Connection) -> None:
+        cols = {str(row[1]) for row in conn.execute("PRAGMA table_info(processed_files)")}
+        if "content_hash" not in cols:
+            conn.execute("ALTER TABLE processed_files ADD COLUMN content_hash TEXT")
+        if "first_seen_at" not in cols:
+            conn.execute("ALTER TABLE processed_files ADD COLUMN first_seen_at TEXT")
+            conn.execute("UPDATE processed_files SET first_seen_at = tagged_at")
 
     def _connect(self) -> sqlite3.Connection:
         conn = sqlite3.connect(self.db_path)
@@ -49,17 +60,24 @@ class StateDB:
         current_size, current_mtime = self._fingerprint(file_path)
         return bool(row["file_size"] == current_size and abs(row["mtime"] - current_mtime) < 1.0)
 
-    def mark_tagged(self, file_path: Path, game_name: str) -> None:
+    def mark_tagged(self, file_path: Path, game_name: str, content_hash: str | None = None) -> None:
         size, mtime = self._fingerprint(file_path)
         now = datetime.now(UTC).isoformat()
         with self._connect() as conn:
+            existing = conn.execute(
+                "SELECT first_seen_at FROM processed_files WHERE file_path = ?",
+                (str(file_path),),
+            ).fetchone()
+            first_seen = (
+                existing["first_seen_at"] if existing and existing["first_seen_at"] else now
+            )
             conn.execute(
                 """
                 INSERT OR REPLACE INTO processed_files
-                    (file_path, game_name, file_size, mtime, tagged_at)
-                VALUES (?, ?, ?, ?, ?)
+                    (file_path, game_name, file_size, mtime, tagged_at, first_seen_at, content_hash)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
-                (str(file_path), game_name, size, mtime, now),
+                (str(file_path), game_name, size, mtime, now, first_seen, content_hash),
             )
 
     def mark_uploaded(self, file_path: Path, youtube_id: str) -> None:
@@ -76,6 +94,27 @@ class StateDB:
                 (str(file_path),),
             ).fetchone()
         return row["youtube_id"] if row else None
+
+    def get_youtube_id_by_hash(self, content_hash: str) -> str | None:
+        """Path-independent dedup — returns youtube_id if this content was already uploaded."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT youtube_id FROM processed_files"
+                " WHERE content_hash = ? AND youtube_id IS NOT NULL",
+                (content_hash,),
+            ).fetchone()
+        return row["youtube_id"] if row else None
+
+    def get_first_seen(self, file_path: Path) -> datetime | None:
+        """Returns when this file path was first recorded in the DB."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT first_seen_at FROM processed_files WHERE file_path = ?",
+                (str(file_path),),
+            ).fetchone()
+        if not row or not row["first_seen_at"]:
+            return None
+        return datetime.fromisoformat(row["first_seen_at"])
 
     def stats(self) -> dict[str, int]:
         with self._connect() as conn:

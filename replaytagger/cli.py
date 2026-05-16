@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -15,7 +16,7 @@ from replaytagger import __version__
 from replaytagger import logging as rt_logging
 from replaytagger.config import AppConfig, load_config
 from replaytagger.db import StateDB
-from replaytagger.tagger import Tagger
+from replaytagger.tagger import Tagger, compute_content_hash
 
 log = structlog.get_logger(__name__)
 
@@ -65,13 +66,31 @@ def _process_file(
         # Genre was written in a prior run but not recorded in DB — backfill it
         tagged = True
 
+    content_hash = compute_content_hash(file_path) if not dry_run else None
+
     if tagged and not dry_run:
-        db.mark_tagged(file_path, game_name)
+        db.mark_tagged(file_path, game_name, content_hash)
 
     if youtube and config.youtube.auto_upload and not dry_run:
+        # Content-hash dedup (path-independent — survives renames)
+        if content_hash and db.get_youtube_id_by_hash(content_hash) is not None:
+            bound.debug("skipped_upload", reason="already_uploaded")
+            return
+        # Legacy path-based dedup for clips uploaded before hash tracking
         if db.get_youtube_id(file_path) is not None:
             bound.debug("skipped_upload", reason="already_uploaded")
             return
+        # Age gate — wait for the clip to be reviewed/renamed before uploading
+        first_seen = db.get_first_seen(file_path)
+        if first_seen is not None:
+            age_days = (datetime.now(UTC) - first_seen).days
+            if age_days < config.youtube.upload_after_days:
+                bound.debug(
+                    "upload_deferred",
+                    age_days=age_days,
+                    required=config.youtube.upload_after_days,
+                )
+                return
         try:
             video_id = youtube.upload(
                 file_path,
@@ -214,6 +233,74 @@ def youtube_auth(ctx: click.Context) -> None:
     click.echo("YouTube authentication successful. Token saved.")
 
 
+@main.command("youtube-sync")
+@click.pass_context
+def youtube_sync(ctx: click.Context) -> None:
+    """Upload all tagged clips that have passed the upload_after_days threshold."""
+    config: AppConfig = ctx.obj["config"]
+    dry_run: bool = ctx.obj["dry_run"]
+
+    if not config.youtube.enabled:
+        click.echo("YouTube is not enabled. Set youtube.enabled: true in config.yaml.")
+        return
+
+    from replaytagger.youtube_client import YouTubeClient
+
+    client = YouTubeClient(config.youtube.credentials_file, config.youtube.token_file)
+    client.authenticate()
+
+    db = StateDB(config.data_dir / "state.db")
+
+    if not config.clips_dir.exists():
+        log.error("clips_dir_not_found", path=str(config.clips_dir))
+        sys.exit(1)
+
+    clips = [
+        f
+        for f in config.clips_dir.rglob("*")
+        if f.is_file() and f.suffix.lower() in config.extensions
+    ]
+
+    uploaded = skipped = 0
+
+    for clip in clips:
+        bound = log.bind(file=clip.name, game=clip.parent.name)
+        content_hash = compute_content_hash(clip)
+
+        if (
+            db.get_youtube_id_by_hash(content_hash) is not None
+            or db.get_youtube_id(clip) is not None
+        ):
+            skipped += 1
+            continue
+
+        if db.get_first_seen(clip) is None:
+            bound.debug("skipped_sync", reason="not_tagged")
+            continue
+
+        if dry_run:
+            bound.info("would_upload", file=clip.name)
+            continue
+
+        try:
+            video_id = client.upload(
+                clip,
+                clip.parent.name,
+                privacy=config.youtube.privacy,
+                compress=config.youtube.compress,
+                ffmpeg_path=config.ffmpeg_path,
+                resolution=config.youtube.resolution,
+                crf=config.youtube.crf,
+            )
+            db.mark_tagged(clip, clip.parent.name, content_hash)
+            db.mark_uploaded(clip, video_id)
+            uploaded += 1
+        except Exception as exc:
+            bound.error("upload_failed", error=str(exc))
+
+    log.info("youtube_sync_complete", uploaded=uploaded, skipped=skipped)
+
+
 @main.command()
 @click.argument("file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
 @click.option(
@@ -227,6 +314,12 @@ def upload(ctx: click.Context, file: Path, privacy: str | None) -> None:
     """Upload a single clip to YouTube."""
     config: AppConfig = ctx.obj["config"]
     db = StateDB(config.data_dir / "state.db")
+
+    content_hash = compute_content_hash(file)
+
+    if db.get_youtube_id_by_hash(content_hash) is not None:
+        click.echo(f"Already uploaded (same content): {file.name}")
+        return
 
     if db.get_youtube_id(file) is not None:
         click.echo(f"Already uploaded: {file.name}")
@@ -249,6 +342,8 @@ def upload(ctx: click.Context, file: Path, privacy: str | None) -> None:
         resolution=config.youtube.resolution,
         crf=config.youtube.crf,
     )
+    # Ensure row exists with hash so future dedup checks work
+    db.mark_tagged(file, game_name, content_hash)
     db.mark_uploaded(file, video_id)
     click.echo(f"Uploaded: https://youtu.be/{video_id}")
 

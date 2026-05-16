@@ -126,11 +126,10 @@ class YouTubeClient:
                 tmp_path = self.compress(file_path, ffmpeg_path, resolution, crf)
                 upload_path = tmp_path
 
-            title = f"{game_name} | {file_path.stem}"
             body = {
                 "snippet": {
-                    "title": title,
-                    "description": f"Game clip from {game_name}\nArchived by ReplayTagger.",
+                    "title": file_path.stem,
+                    "description": f"Game clip from {game_name}.",
                     "tags": [game_name, "gaming", "clips", "NVIDIA"],
                     "categoryId": "20",  # Gaming
                 },
