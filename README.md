@@ -77,7 +77,7 @@ replaytagger --config config.yaml watch
 Pre-built multi-arch images (`amd64` + `arm64`) are published to GitHub Container Registry on every release:
 
 ```bash
-docker pull ghcr.io/danielclements/replaytagger:latest
+docker pull ghcr.io/iamclements/replay-tagger:latest
 ```
 
 ---
@@ -205,7 +205,7 @@ Clips are compressed with ffmpeg before uploading to reduce bandwidth. Upload ID
 
 ### Synology (Container Manager)
 
-1. Pull `ghcr.io/danielclements/replaytagger:latest`
+1. Pull `ghcr.io/iamclements/replay-tagger:latest`
 2. Create a container with:
    - Volume: `/your/clips/folder` → `/clips`
    - Volume: `/your/data/folder` → `/app/data`
@@ -237,7 +237,7 @@ Enable **"Automatically create collections by genre"** in library advanced setti
 ## Development
 
 ```bash
-git clone https://github.com/danielclements/ReplayTagger
+git clone https://github.com/iamclements/replay-tagger
 cd ReplayTagger
 make install       # creates .venv and installs package + dev deps
 source .venv/bin/activate

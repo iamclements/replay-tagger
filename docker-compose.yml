@@ -1,7 +1,7 @@
 services:
   replaytagger:
     # Use pre-built image from GHCR, or build locally with: make docker-build
-    image: ghcr.io/danielclements/replaytagger:latest
+    image: ghcr.io/iamclements/replay-tagger:latest
     build:
       context: .
       dockerfile: Dockerfile
