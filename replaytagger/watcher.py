@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import threading
 import time
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 
 import structlog
 from watchdog.events import FileCreatedEvent, FileModifiedEvent, FileSystemEventHandler

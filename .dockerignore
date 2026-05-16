@@ -24,12 +24,13 @@ youtube_token.json
 .DS_Store
 Thumbs.db
 
-# Docs and non-runtime files
-README.md
+# Docs and non-runtime files (README.md and LICENSE excluded from *.md below
+# because they are required by hatchling during the builder stage pip install)
 CHANGELOG.md
 CONTRIBUTING.md
-LICENSE
 Makefile
 images/
 *.ps1
 *.md
+!README.md
+!LICENSE
