@@ -232,6 +232,7 @@ def watch(ctx: click.Context) -> None:
         on_new_clip,
         config.extensions,
         config.debounce_seconds,
+        heartbeat_path=config.data_dir / ".health",
     )
 
 
