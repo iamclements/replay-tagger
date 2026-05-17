@@ -1,8 +1,7 @@
-<p align="center">
-  <img src="docs/images/logo.svg" width="80" alt="ReplayTagger logo">
-</p>
-
-# ReplayTagger
+<h1>
+  <img src="docs/images/logo.svg" width="40" alt="">
+  ReplayTagger
+</h1>
 
 Automatically tag NVIDIA Instant Replay clips by game and organize them into Plex collections — with optional YouTube archiving.
 
@@ -19,7 +18,9 @@ Automatically tag NVIDIA Instant Replay clips by game and organize them into Ple
 
 NVIDIA saves clips — whether triggered by hotkey or recorded as a full session — into folders named after the game you were playing. ReplayTagger watches those folders and writes the game name into each clip's genre metadata using ffmpeg. Plex reads that tag and automatically places each clip into the right game collection.
 
-**Your video files are not re-encoded.** Only a small metadata field is updated, and original timestamps are preserved.
+Other capture software that organizes clips into per-game subfolders works the same way — the folder name is all ReplayTagger needs.
+
+**Your video files are not re-encoded.** ffmpeg remuxes to a temp file in the same directory, atomically replaces the original, and restores the original modification timestamp. The file is identical except for the genre tag.
 
 YouTube archiving is an optional bonus. Clips are uploaded as-is — YouTube re-encodes everything through their own pipeline regardless, so there's no benefit to pre-encoding locally. Each file is fingerprinted so it's never uploaded twice even if you rename it.
 
@@ -27,7 +28,7 @@ YouTube archiving is an optional bonus. Clips are uploaded as-is — YouTube re-
 
 ## What you need
 
-- **A gaming PC** with [NVIDIA GeForce Experience](https://www.nvidia.com/en-us/geforce/geforce-experience/) — clips saved via hotkey or session recording
+- **A gaming PC** with [NVIDIA GeForce Experience](https://www.nvidia.com/en-us/geforce/geforce-experience/) or any capture tool that saves clips into per-game subfolders
 - **A homelab server or NAS** running Docker — this is where ReplayTagger and Plex live (Synology, Unraid, TrueNAS SCALE, Raspberry Pi, or any Linux machine)
 - **Plex Media Server** already running on that server
 - **A way to get clips to your server** — [Syncthing](https://syncthing.net/) is the easiest option (see [Step 2](#step-2--get-your-clips-to-the-server))
@@ -53,10 +54,11 @@ Videos/
 
 ![Flow diagram](docs/images/flow-diagram.svg)
 
-1. NVIDIA saves a clip to a per-game folder on your gaming PC
+1. A clip is saved to a per-game folder on your gaming PC
 2. A sync tool (e.g. Syncthing) delivers it to your server
 3. ReplayTagger detects the new file and writes the game name into the genre tag
 4. Plex reads the tag and adds the clip to the matching game collection
+5. Optionally: a webhook notification fires and a YouTube upload is queued
 
 ---
 
@@ -82,6 +84,8 @@ cd replay-tagger
 5. **Advanced** tab → **"Automatically create collections"** → **"by Genre"**
 
 Note the library name — it goes into `config.yaml` in Step 3.
+
+> **Agent tip:** if Plex is matching your clips against its movie database and overwriting the genre tag, go to the library's **Advanced** settings and switch the agent to **Personal Media**. ReplayTagger writes genre tags directly into the file — no online matching needed.
 
 > **If the library name in config.yaml doesn't match exactly, ReplayTagger will start but Plex scans and collection creation will silently do nothing.** Check the logs if clips aren't appearing.
 
@@ -172,16 +176,9 @@ Inside the container the token is at `/app/data/plex_token`; on the host that's 
 
 ### Step 5 — Set up volumes and start
 
-Edit the left side of each volume in `docker-compose.yml` to match your host paths:
+Copy [docker-compose.yml](docker-compose.yml) from the repo to your server. Edit the **left side** of each volume mount and set `PUID`/`PGID` to match the owner of your clips folder — run `id` on the host to find the right values.
 
-```yaml
-volumes:
-  - /mnt/clips:/clips                          # host clips dir → /clips in container
-  - /mnt/appdata/replaytagger:/app/data        # same data dir from Step 4
-  - /mnt/appdata/replaytagger/config.yaml:/app/config.yaml:ro
-```
-
-> The volume and `CLIPS_DIR` are independent: the volume exposes the host path to Docker; `CLIPS_DIR` tells ReplayTagger where to look inside the container. With the default compose file `CLIPS_DIR` is always `/clips` — only the left side of the mount changes.
+> `CLIPS_DIR` is always `/clips` inside the container — only the host-side path (left of the colon) changes.
 
 ```bash
 docker compose up -d
@@ -240,6 +237,37 @@ youtube:
 
 ---
 
+## Notifications
+
+ReplayTagger can send webhook notifications to Discord or any generic HTTP endpoint when clips are tagged, uploaded, or when errors occur.
+
+```yaml
+notifications:
+  webhooks:
+    - url: https://discord.com/api/webhooks/SERVER_ID/TOKEN
+      type: discord
+      events: [clip_tagged, scan_complete, error]
+```
+
+**Supported types:** `discord` · `generic`
+
+**Supported events:**
+
+| Event | When it fires |
+|-------|--------------|
+| `clip_tagged` | A new clip is detected and tagged in watch mode (per clip) |
+| `clip_uploaded` | A clip is uploaded to YouTube |
+| `scan_complete` | A scan run finishes with at least one newly tagged clip |
+| `error` | A clip fails to tag or upload |
+
+> `clip_tagged` and `clip_uploaded` fire once per file — leave them out if you have a large backlog to process and don't want per-clip noise. `scan_complete` and `error` are good defaults for everyone.
+
+Discord webhooks send colour-coded embeds (green for tagged, yellow for uploaded, blue for scan complete, red for error). Generic webhooks POST `{"event": "...", "data": {...}}` JSON. Failed webhook requests log a warning and never interrupt tagging.
+
+See [config.yaml.example](config.yaml.example) for the full reference.
+
+---
+
 ## Troubleshooting
 
 **Clips aren't being tagged**
@@ -256,6 +284,17 @@ Re-run `plex-auth` to generate a fresh token — Plex tokens don't expire but ca
 
 **Plex scans not triggering / collections not updating**
 ReplayTagger still tags files and updates the database if Plex is unreachable — it logs a warning and continues. Check that `PLEX_URL` resolves from inside the container's network (use the LAN IP, not a hostname that only resolves on the host).
+
+**Check how many clips have been tagged**
+```bash
+docker exec replaytagger replaytagger --config /app/config.yaml status
+```
+
+**Logs are hard to read**
+Set `LOG_FORMAT=json` (default) for structured logs, or switch to `LOG_FORMAT=text` for human-readable output during debugging:
+```bash
+LOG_FORMAT=text docker compose up
+```
 
 ---
 
@@ -301,6 +340,8 @@ Secrets always go in `.env`, never in `config.yaml`:
 
 | Variable | Description |
 |----------|-------------|
+| `PUID` | UID to run as — match to the owner of your clips folder (default: `1000`) |
+| `PGID` | GID to run as — match to the owner of your clips folder (default: `1000`) |
 | `CLIPS_DIR` | Path to the clips folder on your server |
 | `PLEX_URL` | Your Plex server URL |
 | `PLEX_TOKEN` | Plex token (alternative to running `plex-auth`) |
@@ -365,6 +406,14 @@ docker exec -it replaytagger replaytagger --config /app/config.yaml plex-auth
 > **Note:** `plex-auth` requires an interactive terminal (TTY) for the PIN flow. If your container UI doesn't provide a console, exec via the CLI above is currently the only supported path.
 
 Pre-built images for `amd64` and `arm64` are published to GitHub Container Registry on every release. The `arm64` image runs natively on Raspberry Pi and most NAS SoCs.
+
+**Version pinning:** use a release tag instead of `latest` if you want to control updates:
+```
+ghcr.io/iamclements/replay-tagger:v1.2.3
+```
+All releases are listed on the [GitHub releases page](https://github.com/iamclements/replay-tagger/releases).
+
+**Healthcheck:** the container exposes a Docker healthcheck that monitors a heartbeat file written by the watcher every cycle. Container management UIs (Portainer, Synology, Unraid) will show the container as `healthy` or `unhealthy` automatically — no extra configuration needed.
 
 ---
 
