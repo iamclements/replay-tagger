@@ -28,6 +28,24 @@ source .venv/bin/activate
    - `chore:` tooling, deps, or config
 5. Open a pull request against `main`
 
+## Pull Request Format
+
+Write the description as plain prose: 2-4 sentences explaining what changed and why. For PRs that change behavior or add a feature, include a `## Test cases` section with specific shell commands and expected output so reviewers can verify the change manually. Docs-only PRs don't need test cases.
+
+Example:
+
+```
+Adds webhook notifications for Discord and generic HTTP endpoints. Four events
+are supported (clip_tagged, clip_uploaded, scan_complete, error) with per-webhook
+event filtering so large-library users can skip per-clip noise.
+
+## Test cases
+
+- [ ] `make test` passes (covers payload structure, event filtering, error resilience)
+- [ ] Add a Discord webhook to config.yaml, run `replaytagger run`, verify embed appears
+- [ ] Remove the webhook URL, confirm tagging still completes without error
+```
+
 ## Code Style
 
 - Python 3.11+, formatted with `ruff format`, linted with `ruff check` and `mypy --strict`
