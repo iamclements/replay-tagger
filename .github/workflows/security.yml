@@ -49,6 +49,8 @@ jobs:
   pip-audit:
     name: Python Dependency Audit
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
