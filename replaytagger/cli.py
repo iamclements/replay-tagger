@@ -252,9 +252,12 @@ def plex_auth(ctx: click.Context) -> None:
     from replaytagger.plex_auth import authenticate
 
     token = authenticate(config.data_dir)
+    token_file = config.data_dir / "plex_token"
+    token_file.parent.mkdir(parents=True, exist_ok=True)
+    token_file.write_text(token)
     click.echo("\nAuthorization successful!")
-    click.echo("Add the following to your .env file:")
-    click.echo(f"\n  PLEX_TOKEN={token}\n")
+    click.echo(f"Token saved to {token_file} — no environment variable needed.")
+    click.echo(f"To set it as an env var instead:\n\n  PLEX_TOKEN={token}\n")
 
 
 @main.command("youtube-auth")
