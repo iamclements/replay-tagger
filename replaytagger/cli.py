@@ -157,7 +157,10 @@ def main(ctx: click.Context, config_path: Path, dry_run: bool) -> None:
     ctx.ensure_object(dict)
     cfg = load_config(config_path)
     rt_logging.configure(cfg.logging.level, cfg.logging.format)
-    _validate_config(cfg)
+    # Auth commands obtain credentials — skip validation so they can run before
+    # a token exists even when plex.enabled or youtube.enabled is already set.
+    if ctx.invoked_subcommand not in ("plex-auth", "youtube-auth"):
+        _validate_config(cfg)
     ctx.obj["config"] = cfg
     ctx.obj["dry_run"] = dry_run
 

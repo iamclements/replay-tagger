@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" width="80" height="80">
+  <defs>
+    <clipPath id="sc18" clipPathUnits="userSpaceOnUse">
+      <rect x="10" y="8" width="60" height="16" rx="4"/>
+    </clipPath>
+  </defs>
+
+  <rect width="80" height="80" rx="12" fill="#080d1a"/>
+
+  <!-- Stick -->
+  <rect x="10" y="8" width="60" height="16" rx="4" fill="#111827"/>
+  <!-- Platform-colored diagonal stripes -->
+  <path clip-path="url(#sc18)" d="M6 24 L22 8 L33 8 L17 24 Z"  fill="#76b900"/>
+  <path clip-path="url(#sc18)" d="M26 24 L42 8 L53 8 L37 24 Z" fill="#e5a00d"/>
+  <path clip-path="url(#sc18)" d="M46 24 L62 8 L73 8 L57 24 Z" fill="#cc2200"/>
+  <rect x="10" y="8" width="60" height="16" rx="4" fill="none" stroke="#475569" stroke-width="1.5"/>
+
+  <!-- Board body -->
+  <rect x="10" y="22" width="60" height="50" rx="4" fill="#1e293b" stroke="#475569" stroke-width="1.5"/>
+  <line x1="10" y1="25" x2="70" y2="25" stroke="#475569" stroke-width="1"/>
+
+  <!-- Tagged row -->
+  <rect x="15" y="30" width="50" height="9" rx="2" fill="#4ade80" opacity="0.15"/>
+  <rect x="15" y="30" width="30" height="9" rx="2" fill="#4ade80" opacity="0.25"/>
+  <circle cx="59" cy="34.5" r="3.5" fill="#4ade80"/>
+
+  <!-- Label rows -->
+  <rect x="15" y="44" width="36" height="3" rx="1" fill="#334155"/>
+  <rect x="15" y="51" width="24" height="3" rx="1" fill="#334155"/>
+  <rect x="15" y="58" width="40" height="3" rx="1" fill="#263248"/>
+  <rect x="15" y="65" width="28" height="3" rx="1" fill="#263248"/>
+
+</svg>
