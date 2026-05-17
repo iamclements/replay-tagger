@@ -130,10 +130,6 @@ def _process_file(
                 file_path,
                 game_name,
                 privacy=config.youtube.privacy,
-                compress=config.youtube.compress,
-                ffmpeg_path=config.ffmpeg_path,
-                resolution=config.youtube.resolution,
-                crf=config.youtube.crf,
             )
             db.mark_uploaded(file_path, video_id)
         except Exception as exc:
@@ -329,10 +325,6 @@ def youtube_sync(ctx: click.Context) -> None:
                 clip,
                 clip.parent.name,
                 privacy=config.youtube.privacy,
-                compress=config.youtube.compress,
-                ffmpeg_path=config.ffmpeg_path,
-                resolution=config.youtube.resolution,
-                crf=config.youtube.crf,
             )
             db.mark_tagged(clip, clip.parent.name, content_hash)
             db.mark_uploaded(clip, video_id)
@@ -379,10 +371,6 @@ def upload(ctx: click.Context, file: Path, privacy: str | None) -> None:
         file,
         game_name,
         privacy=effective_privacy,
-        compress=config.youtube.compress,
-        ffmpeg_path=config.ffmpeg_path,
-        resolution=config.youtube.resolution,
-        crf=config.youtube.crf,
     )
     # Ensure row exists with hash so future dedup checks work
     db.mark_tagged(file, game_name, content_hash)

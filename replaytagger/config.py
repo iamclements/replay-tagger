@@ -24,9 +24,6 @@ class YouTubeConfig:
     enabled: bool = False
     auto_upload: bool = False
     privacy: str = "private"
-    compress: bool = True
-    resolution: int = 1080
-    crf: int = 28
     upload_after_days: int = 0
     credentials_file: Path = Path("youtube_credentials.json")
     token_file: Path = Path("data/youtube_token.json")
@@ -109,9 +106,6 @@ def load_config(config_path: Path) -> AppConfig:
         enabled=yt_enabled,
         auto_upload=youtube_data.get("auto_upload", False),
         privacy=os.environ.get("YOUTUBE_PRIVACY", youtube_data.get("privacy", "private")),
-        compress=youtube_data.get("compress", True),
-        resolution=youtube_data.get("resolution", 1080),
-        crf=youtube_data.get("crf", 28),
         upload_after_days=yt_upload_after_days,
         credentials_file=Path(yt_credentials),
         token_file=Path(yt_token),
