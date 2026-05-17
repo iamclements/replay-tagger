@@ -1,14 +1,18 @@
 from __future__ import annotations
 
+import json
 import subprocess
 import tempfile
+import time
+import urllib.error
+import urllib.parse
+import urllib.request
 from pathlib import Path
 from typing import Any
 
 import structlog
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -17,6 +21,9 @@ log = structlog.get_logger(__name__)
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
 YOUTUBE_API_SERVICE = "youtube"
 YOUTUBE_API_VERSION = "v3"
+_DEVICE_CODE_URL = "https://oauth2.googleapis.com/device/code"
+_TOKEN_URL = "https://oauth2.googleapis.com/token"
+_DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
 
 
 class YouTubeClient:
@@ -27,8 +34,84 @@ class YouTubeClient:
         self.token_file = token_file
         self._service: Any = None
 
+    def _device_flow(self) -> Credentials:
+        """OAuth2 device flow — works in Docker/headless environments.
+
+        Prints a URL and short code; the user enters the code at google.com/device.
+        Requires a 'TV and Limited Input devices' OAuth client in GCP.
+        """
+        raw = json.loads(self.credentials_file.read_text())
+        client_info: dict[str, str] = raw.get("installed") or raw.get("web") or {}
+        if not client_info:
+            raise ValueError(
+                "Unrecognised credentials file format — expected 'installed' or 'web' key.\n"
+                "Re-download from Google Cloud Console > APIs & Services > Credentials."
+            )
+        client_id = client_info["client_id"]
+        client_secret = client_info["client_secret"]
+
+        data = urllib.parse.urlencode({"client_id": client_id, "scope": " ".join(SCOPES)}).encode()
+        with urllib.request.urlopen(urllib.request.Request(_DEVICE_CODE_URL, data=data)) as resp:
+            code_resp: dict[str, Any] = json.loads(resp.read())
+
+        device_code: str = code_resp["device_code"]
+        user_code: str = code_resp["user_code"]
+        verification_url: str = code_resp["verification_url"]
+        expires_in: int = int(code_resp["expires_in"])
+        interval: int = int(code_resp.get("interval", 5))
+
+        print("\n" + "=" * 60)
+        print("YouTube Authorization Required")
+        print("=" * 60)
+        print(f"  1. Open:  {verification_url}")
+        print(f"  2. Enter: {user_code}")
+        print("=" * 60)
+        print(f"(Code expires in {expires_in // 60} minutes)\n")
+
+        deadline = time.monotonic() + expires_in
+        while time.monotonic() < deadline:
+            time.sleep(interval)
+            token_data = urllib.parse.urlencode(
+                {
+                    "client_id": client_id,
+                    "client_secret": client_secret,
+                    "device_code": device_code,
+                    "grant_type": _DEVICE_GRANT,
+                }
+            ).encode()
+            try:
+                with urllib.request.urlopen(
+                    urllib.request.Request(_TOKEN_URL, data=token_data)
+                ) as resp:
+                    token_resp: dict[str, Any] = json.loads(resp.read())
+            except urllib.error.HTTPError as exc:
+                body: dict[str, Any] = json.loads(exc.read())
+                error = body.get("error", "")
+                if error == "authorization_pending":
+                    continue
+                elif error == "slow_down":
+                    interval += 5
+                    continue
+                elif error == "access_denied":
+                    raise RuntimeError("YouTube authorization denied.")
+                else:
+                    raise RuntimeError(
+                        f"OAuth2 error: {error} — {body.get('error_description', '')}"
+                    )
+
+            return Credentials(  # type: ignore[no-untyped-call]
+                token=token_resp["access_token"],
+                refresh_token=token_resp.get("refresh_token"),
+                token_uri=_TOKEN_URL,
+                client_id=client_id,
+                client_secret=client_secret,
+                scopes=SCOPES,
+            )
+
+        raise RuntimeError("Authorization timed out — the code expired before it was entered.")
+
     def authenticate(self) -> None:
-        """Run OAuth2 flow. Opens a browser on first run; refreshes silently after."""
+        """Run OAuth2 device flow on first run; refreshes token silently after."""
         creds: Credentials | None = None
 
         if self.token_file.exists():
@@ -43,11 +126,10 @@ class YouTubeClient:
                         f"YouTube credentials file not found: {self.credentials_file}\n"
                         "Download it from Google Cloud Console > APIs & Services > Credentials."
                     )
-                flow = InstalledAppFlow.from_client_secrets_file(str(self.credentials_file), SCOPES)
-                creds = flow.run_local_server(port=0)
+                creds = self._device_flow()
 
             self.token_file.parent.mkdir(parents=True, exist_ok=True)
-            self.token_file.write_text(creds.to_json())
+            self.token_file.write_text(creds.to_json())  # type: ignore[no-untyped-call]
             log.info("youtube_token_saved", path=str(self.token_file))
 
         self._service = build(YOUTUBE_API_SERVICE, YOUTUBE_API_VERSION, credentials=creds)
