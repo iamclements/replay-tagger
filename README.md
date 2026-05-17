@@ -193,7 +193,7 @@ ReplayTagger uses the OAuth2 **device flow** — no browser on the server requir
 2. Enable the **YouTube Data API v3**
 3. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID**
 4. Application type: **TV and Limited Input devices** *(not Desktop app — device flow requires this type)*
-5. Download the JSON and save it as `youtube_credentials.json` in your project root (or the path set in `config.yaml`)
+5. Download the JSON and save it as `youtube_credentials.json` in your **data directory** (the folder mapped to `/app/data` in your volume mount)
 
 ### 2. Authorize
 
@@ -213,7 +213,7 @@ YouTube Authorization Required
 (Code expires in 30 minutes)
 ```
 
-Open the URL on any device, enter the code, and sign in. The token is saved to `data/youtube_token.json` and reused on every subsequent run — you only authorize once.
+Open the URL on any device, enter the code, and sign in. The token is saved to `/app/data/youtube_token.json` and reused on every subsequent run — you only authorize once.
 
 **Docker:** run `docker compose run --rm replaytagger youtube-auth` and enter the code in your browser as normal. No port forwarding needed.
 
