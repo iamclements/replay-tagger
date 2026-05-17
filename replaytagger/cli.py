@@ -26,7 +26,13 @@ def _validate_config(config: AppConfig) -> None:
     errors = []
 
     if config.plex.enabled and not config.plex.token:
-        errors.append("PLEX_TOKEN is required when plex.enabled is true")
+        log.warning(
+            "plex_token_missing",
+            reason=(
+                "plex.enabled is true but no token found"
+                " — run 'replaytagger plex-auth' to authorize"
+            ),
+        )
 
     if config.youtube.enabled:
         if config.youtube.privacy not in ("private", "unlisted", "public"):
