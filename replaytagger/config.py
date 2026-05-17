@@ -90,8 +90,17 @@ def load_config(config_path: Path) -> AppConfig:
         )
     )
 
+    _yt_enabled_env = os.environ.get("YOUTUBE_ENABLED", "").lower()
+    yt_enabled = (
+        True
+        if _yt_enabled_env == "true"
+        else False
+        if _yt_enabled_env == "false"
+        else youtube_data.get("enabled", False)
+    )
+
     youtube = YouTubeConfig(
-        enabled=youtube_data.get("enabled", False),
+        enabled=yt_enabled,
         auto_upload=youtube_data.get("auto_upload", False),
         privacy=os.environ.get("YOUTUBE_PRIVACY", youtube_data.get("privacy", "private")),
         compress=youtube_data.get("compress", True),
