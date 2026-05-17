@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-05-16
+
 ### Added
 - YouTube OAuth2 **device flow** (`replaytagger youtube-auth`) — prints a URL + short code instead of opening a browser, works in Docker and headless environments. Requires a "TV and Limited Input devices" GCP OAuth client.
 - `replaytagger youtube-sync` command — manually upload all tagged clips that have passed the `upload_after_days` threshold, without waiting for watch mode
