@@ -26,7 +26,13 @@ def _validate_config(config: AppConfig) -> None:
     errors = []
 
     if config.plex.enabled and not config.plex.token:
-        errors.append("PLEX_TOKEN is required when plex.enabled is true")
+        log.warning(
+            "plex_token_missing",
+            reason=(
+                "plex.enabled is true but no token found"
+                " — run 'replaytagger plex-auth' to authorize"
+            ),
+        )
 
     if config.youtube.enabled:
         if config.youtube.privacy not in ("private", "unlisted", "public"):
@@ -63,9 +69,16 @@ def _build_plex(config: AppConfig):  # type: ignore[no-untyped-def]
         return None
     from replaytagger.plex_client import PlexClient
 
-    return PlexClient(
-        config.plex.url, config.plex.token, config.plex.library_name, config.plex.verify_ssl
-    )
+    try:
+        return PlexClient(
+            config.plex.url, config.plex.token, config.plex.library_name, config.plex.verify_ssl
+        )
+    except Exception:
+        log.warning(
+            "plex_degraded",
+            reason="connection failed — tagging will continue without Plex integration",
+        )
+        return None
 
 
 def _build_youtube(config: AppConfig):  # type: ignore[no-untyped-def]

@@ -21,7 +21,7 @@ NVIDIA saves clips — whether triggered by hotkey or recorded as a full session
 
 **Your video files are not re-encoded.** Only a small metadata field is updated, and original timestamps are preserved.
 
-YouTube archiving is an optional bonus. Clips are compressed before upload (YouTube's storage is free, and compressed is better than nothing), and each file is fingerprinted so it's never uploaded twice even if you rename it.
+YouTube archiving is an optional bonus. Clips are uploaded as-is — YouTube re-encodes everything through their own pipeline regardless, so there's no benefit to pre-encoding locally. Each file is fingerprinted so it's never uploaded twice even if you rename it.
 
 ---
 
@@ -32,7 +32,7 @@ YouTube archiving is an optional bonus. Clips are compressed before upload (YouT
 - **Plex Media Server** already running on that server
 - **A way to get clips to your server** — [Syncthing](https://syncthing.net/) is the easiest option (see [Step 2](#step-2--get-your-clips-to-the-server))
 
-> **ReplayTagger runs on your server, not your gaming PC.** It sits next to Plex and watches the folder where your clips land.
+> **ReplayTagger runs on your server, not your gaming PC.** It only needs network access to Plex and to the folder where clips land — it doesn't have to run on the same host as Plex.
 
 Optional: a Google account for YouTube archiving.
 
@@ -246,7 +246,7 @@ youtube:
 ```bash
 docker compose logs -f replaytagger
 ```
-Check that `CLIPS_DIR` in `.env` matches the left side of the `/clips` volume in `docker-compose.yml`, and that the clips folder exists on your server.
+Check that the left side of the `/clips` volume in `docker-compose.yml` points to the correct host directory and that it exists. `CLIPS_DIR` is always `/clips` inside the container with the default compose file — only the host-side path changes.
 
 **Plex collections aren't appearing**
 Confirm the `library_name` in `config.yaml` matches your Plex library name exactly (case-sensitive). Also verify "Automatically create collections by genre" is enabled in the library's Advanced settings.
@@ -356,11 +356,13 @@ Tools like Synology Container Manager, Unraid, TrueNAS SCALE, and similar UIs ca
 | Volume | `/your/config.yaml` → `/app/config.yaml` (read-only) |
 | Env | `PLEX_URL`, `CLIPS_DIR`, and any others from `.env.example` |
 
-To run auth commands on a deployed container, use your UI's console/exec feature or:
+To run auth commands, use your UI's console/exec feature or:
 
 ```bash
 docker exec -it replaytagger replaytagger --config /app/config.yaml plex-auth
 ```
+
+> **Note:** `plex-auth` requires an interactive terminal (TTY) for the PIN flow. If your container UI doesn't provide a console, exec via the CLI above is currently the only supported path.
 
 Pre-built images for `amd64` and `arm64` are published to GitHub Container Registry on every release. The `arm64` image runs natively on Raspberry Pi and most NAS SoCs.
 
