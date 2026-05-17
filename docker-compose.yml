@@ -23,6 +23,9 @@ services:
       - PLEX_VERIFY_SSL=${PLEX_VERIFY_SSL:-true}
       # Uncomment to enable YouTube uploads via environment (overrides config.yaml)
       # - YOUTUBE_ENABLED=true
+      # YouTube OAuth client credentials — alternative to mounting a credentials JSON file
+      # - YOUTUBE_CLIENT_ID=${YOUTUBE_CLIENT_ID}
+      # - YOUTUBE_CLIENT_SECRET=${YOUTUBE_CLIENT_SECRET}
       # YouTube privacy override (private | unlisted | public)
       - YOUTUBE_PRIVACY=${YOUTUBE_PRIVACY:-private}
       # Uncomment to delay uploads until clips have been in the folder for N days

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import tempfile
 import time
@@ -38,17 +39,23 @@ class YouTubeClient:
         """OAuth2 device flow — works in Docker/headless environments.
 
         Prints a URL and short code; the user enters the code at google.com/device.
+        Credentials are sourced from YOUTUBE_CLIENT_ID/YOUTUBE_CLIENT_SECRET env vars
+        (recommended for Docker) or from the credentials JSON file (local dev).
         Requires a 'TV and Limited Input devices' OAuth client in GCP.
         """
-        raw = json.loads(self.credentials_file.read_text())
-        client_info: dict[str, str] = raw.get("installed") or raw.get("web") or {}
-        if not client_info:
-            raise ValueError(
-                "Unrecognised credentials file format — expected 'installed' or 'web' key.\n"
-                "Re-download from Google Cloud Console > APIs & Services > Credentials."
-            )
-        client_id = client_info["client_id"]
-        client_secret = client_info["client_secret"]
+        client_id = os.environ.get("YOUTUBE_CLIENT_ID")
+        client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
+
+        if not (client_id and client_secret):
+            raw = json.loads(self.credentials_file.read_text())
+            client_info: dict[str, str] = raw.get("installed") or raw.get("web") or {}
+            if not client_info:
+                raise ValueError(
+                    "Unrecognised credentials file format — expected 'installed' or 'web' key.\n"
+                    "Re-download from Google Cloud Console > APIs & Services > Credentials."
+                )
+            client_id = client_info["client_id"]
+            client_secret = client_info["client_secret"]
 
         data = urllib.parse.urlencode({"client_id": client_id, "scope": " ".join(SCOPES)}).encode()
         with urllib.request.urlopen(urllib.request.Request(_DEVICE_CODE_URL, data=data)) as resp:
@@ -121,10 +128,14 @@ class YouTubeClient:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())  # type: ignore[no-untyped-call]
             else:
-                if not self.credentials_file.exists():
+                has_env_creds = bool(
+                    os.environ.get("YOUTUBE_CLIENT_ID") and os.environ.get("YOUTUBE_CLIENT_SECRET")
+                )
+                if not has_env_creds and not self.credentials_file.exists():
                     raise FileNotFoundError(
                         f"YouTube credentials file not found: {self.credentials_file}\n"
-                        "Download it from Google Cloud Console > APIs & Services > Credentials."
+                        "Either set YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET env vars,\n"
+                        "or download the credentials JSON from Google Cloud Console."
                     )
                 creds = self._device_flow()
 
@@ -145,8 +156,6 @@ class YouTubeClient:
         """Re-encode to H.264 for smaller upload size. Returns path to temp file."""
         tmp_fd, tmp_name = tempfile.mkstemp(suffix=".compressed.mp4")
         output_path = Path(tmp_name)
-        import os
-
         os.close(tmp_fd)
 
         log.info("compressing", file=input_path.name, resolution=resolution, crf=crf)
