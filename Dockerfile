@@ -8,7 +8,8 @@ WORKDIR /build
 COPY pyproject.toml README.md LICENSE ./
 COPY replaytagger/ replaytagger/
 
-RUN pip install --no-cache-dir --prefix=/install .
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir --prefix=/install .
 
 
 # ── Runtime stage: minimal image with ffmpeg ──────────────────────────────────
@@ -20,6 +21,7 @@ LABEL org.opencontainers.image.title="ReplayTagger" \
       org.opencontainers.image.licenses="MIT"
 
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
