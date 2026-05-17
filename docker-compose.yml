@@ -16,6 +16,9 @@ services:
       - ./config.yaml:/app/config.yaml:ro
 
     environment:
+      # User/group ID — match these to the owner of your clips folder on the host
+      - PUID=${PUID:-1000}
+      - PGID=${PGID:-1000}
       # Plex — set these in your .env file, never commit secrets
       - PLEX_TOKEN=${PLEX_TOKEN:-}
       - PLEX_URL=${PLEX_URL:-http://localhost:32400}
