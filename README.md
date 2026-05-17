@@ -114,7 +114,15 @@ Alternatives:
 
 ### Step 3: Configure
 
-Download [config.yaml.example](config.yaml.example) and save it as `config.yaml` next to your `docker-compose.yml`. Create a `.env` file in the same directory.
+Download [config.yaml.example](config.yaml.example) as `config.yaml` and [.env.example](.env.example) as `.env`, both next to your `docker-compose.yml`:
+
+```bash
+curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/config.yaml.example
+mv config.yaml.example config.yaml
+
+curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/.env.example
+mv .env.example .env
+```
 
 **`.env`**: set your clips path and Plex URL:
 
@@ -331,11 +339,12 @@ youtube:
   privacy: private
   upload_after_days: 0
 
-notifications:
-  webhooks:
-    - url: https://discord.com/api/webhooks/...
-      type: discord                  # discord | generic
-      events: [scan_complete, error] # clip_tagged | clip_uploaded | scan_complete | error
+# optional: webhook notifications (discord | generic)
+# notifications:
+#   webhooks:
+#     - url: https://discord.com/api/webhooks/...
+#       type: discord
+#       events: [scan_complete, error]
 ```
 
 ### Environment variables
