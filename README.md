@@ -64,7 +64,7 @@ Videos/
 
 ### Step 0 — Get the files
 
-Clone the repo onto your server:
+Clone the repo **on the machine that will run the container** — not your gaming PC:
 
 ```bash
 git clone https://github.com/iamclements/replay-tagger
@@ -75,15 +75,13 @@ cd replay-tagger
 
 ### Step 1 — Create a Plex library
 
-ReplayTagger needs the library to exist before it can interact with Plex:
+1. Plex Web → **Libraries** → **Add Library**
+2. Type: **Movies** (Home Videos doesn't support genre-based collections)
+3. Name it — e.g. `Gaming Clips` — note the exact name
+4. Point it at the folder where clips will land
+5. **Advanced** tab → **"Automatically create collections"** → **"by Genre"**
 
-1. Open Plex Web → **Libraries** → **Add Library**
-2. Choose **Movies** as the type
-3. Name it — e.g. `Gaming Clips` — and note the exact name
-4. Point it at the folder on your server where clips will land
-5. In the library's **Advanced** settings, enable **"Automatically create collections by genre"** — Plex will create a new collection for every game with no extra steps
-
-You'll enter this library name in `config.yaml` in Step 3.
+Note the library name — it goes into `config.yaml` in Step 3.
 
 > **If the library name in config.yaml doesn't match exactly, ReplayTagger will start but Plex scans and collection creation will silently do nothing.** Check the logs if clips aren't appearing.
 
@@ -101,10 +99,10 @@ Each game gets its own subfolder automatically.
 
 **Syncing to your server**
 
-[Syncthing](https://syncthing.net/) is the recommended option — free, open source, and runs on Windows, Linux, and most NAS platforms. Install it on both your gaming PC and your server, share the clips folder, and it syncs new clips as they arrive.
+[Syncthing](https://syncthing.net/) is the recommended option — free, open source, and runs on Windows, Linux, and most NAS platforms. See the [Getting Started guide](https://docs.syncthing.net/intro/getting-started.html) for setup.
 
 Alternatives:
-- **Network share (SMB):** Map your server's clips folder as a network drive on your gaming PC and point NVIDIA at it directly — no sync tool needed
+- **Network share (SMB):** Map your server's clips folder as a network drive on your gaming PC, then change the NVIDIA save path in GeForce Experience → **Settings** → **General** → video save location. No sync tool needed.
 - **Same machine:** If you run Docker on your gaming PC, point `CLIPS_DIR` at your NVIDIA clips folder directly
 
 ---
@@ -119,9 +117,11 @@ cp .env.example .env
 **`.env`** — set your clips path and Plex URL:
 
 ```bash
-CLIPS_DIR=/mnt/clips          # where synced clips land on your server
+CLIPS_DIR=/clips               # always /clips when using the default compose file
 PLEX_URL=http://192.168.1.100:32400
 ```
+
+> `CLIPS_DIR` is the path *inside the container*, always `/clips` with the default compose file. Common host-side paths: Synology `/volume1/clips`, Unraid `/mnt/user/clips`, bare Linux `/mnt/clips`. Only the left side of the volume mount changes — the right side stays `/clips`.
 
 **`config.yaml`** — enable Plex and set the library name:
 
@@ -132,6 +132,8 @@ plex:
   auto_scan: true
   auto_create_collections: true
 ```
+
+> `data_dir` defaults to `data/`, which maps to `/app/data` in the container — leave it as-is. It holds the SQLite state database, Plex token, and YouTube token.
 
 See [config.yaml.example](config.yaml.example) for all options with inline documentation.
 
@@ -150,7 +152,7 @@ docker run --rm -it \
   replaytagger plex-auth
 ```
 
-You'll see a URL — open it in any browser, sign in to Plex, and click **Allow**. The token is saved to your data folder automatically.
+Replace `/mnt/appdata/replaytagger` with your data directory — create it first if it doesn't exist (`mkdir -p /mnt/appdata/replaytagger`). The token is written to `plex_token` in that directory automatically.
 
 ```
 Open this URL in your browser to authorize:
@@ -162,7 +164,7 @@ Authorization successful!
 Token saved to /app/data/plex_token
 ```
 
-> The token persists in your mounted `data/` folder. No environment variable or container restart needed — ReplayTagger loads it automatically on startup.
+Inside the container the token is at `/app/data/plex_token`; on the host that's `<your-data-dir>/plex_token`. ReplayTagger loads it on startup — no env var needed.
 
 **Alternative:** Set `PLEX_TOKEN=your_token` in `.env` instead. The env var takes priority over the token file.
 
@@ -170,16 +172,16 @@ Token saved to /app/data/plex_token
 
 ### Step 5 — Set up volumes and start
 
-Open `docker-compose.yml` and set the host paths on the **left side** of each volume (right side is fixed — it's where the container sees the path):
+Edit the left side of each volume in `docker-compose.yml` to match your host paths:
 
 ```yaml
 volumes:
-  - /mnt/clips:/clips                          # your clips folder from Step 2
-  - /mnt/appdata/replaytagger:/app/data        # same data folder used in Step 4
+  - /mnt/clips:/clips                          # host clips dir → /clips in container
+  - /mnt/appdata/replaytagger:/app/data        # same data dir from Step 4
   - /mnt/appdata/replaytagger/config.yaml:/app/config.yaml:ro
 ```
 
-> **`CLIPS_DIR` and the volume mapping are separate settings.** The volume tells Docker which folder on your server to expose. `CLIPS_DIR` tells ReplayTagger where to find clips *inside* the container — which is always `/clips` when using the default compose file.
+> The volume and `CLIPS_DIR` are independent: the volume exposes the host path to Docker; `CLIPS_DIR` tells ReplayTagger where to look inside the container. With the default compose file `CLIPS_DIR` is always `/clips` — only the left side of the mount changes.
 
 ```bash
 docker compose up -d
@@ -192,21 +194,20 @@ ReplayTagger scans all existing clips first, tags any that haven't been tagged y
 
 ### Step 6 — (Optional) Set up YouTube archiving
 
-YouTube gives you free, permanent storage. The tradeoff is compression — clips are re-encoded before upload, so quality is lower than the original. For archiving, that's usually fine.
+Free permanent archival storage. ReplayTagger uploads the source file without pre-encoding; YouTube re-encodes all uploads through their own pipeline regardless, so the stored copy reflects their transcoding — same as any other YouTube upload.
 
 #### Google Cloud setup
 
-1. Create a project in [Google Cloud Console](https://console.cloud.google.com/)
-2. Enable the **YouTube Data API v3**
-3. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID**
-4. Choose **TV and Limited Input devices** *(required — "Desktop app" doesn't support the headless device flow ReplayTagger uses)*
-5. Add your credentials to `.env`:
+1. [console.cloud.google.com](https://console.cloud.google.com/) → new project
+2. **APIs & Services → Library** → enable **YouTube Data API v3**
+3. **APIs & Services → Credentials → Create Credentials → OAuth client ID**
+   - If prompted to configure a consent screen: External → app name + email → save
+4. Application type: **TV and Limited Input devices** — required for headless device flow
+5. Add to `.env`:
    ```bash
    YOUTUBE_CLIENT_ID=your_client_id
    YOUTUBE_CLIENT_SECRET=your_client_secret
    ```
-
-This takes about 5 minutes and only needs to be done once.
 
 #### Authorize
 
@@ -215,7 +216,7 @@ This takes about 5 minutes and only needs to be done once.
 docker compose run --rm replaytagger replaytagger --config /app/config.yaml youtube-auth
 ```
 
-You'll see a short code to enter at `google.com/device` on any browser. The token is saved to `data/youtube_token.json` — you only authorize once.
+Enter the displayed code at `google.com/device`. Token saved to `data/youtube_token.json` — one-time setup.
 
 #### Enable in config.yaml
 
@@ -225,20 +226,17 @@ youtube:
   auto_upload: false        # set true to upload automatically as clips arrive
   privacy: private          # private | unlisted | public
   upload_after_days: 0      # wait N days before auto-uploading (0 = immediately)
-  compress: true
-  resolution: 1080
-  crf: 28                   # compression quality: lower = better quality, larger file (18–28 is typical)
 ```
+
+> Set `upload_after_days` to a non-zero value if you want a review window before clips go public. `youtube-sync` bypasses this — use it to push a backlog on demand.
 
 #### Upload options
 
 | Goal | Command |
 |------|---------|
 | Upload a single clip now | `replaytagger upload "path/to/clip.mp4"` |
-| Upload all eligible clips in batch | `replaytagger youtube-sync` |
+| Upload all tagged clips in batch | `replaytagger youtube-sync` |
 | Auto-upload as clips arrive | Set `auto_upload: true` in config.yaml |
-
-`youtube-sync` ignores `upload_after_days` — useful for pushing a batch of already-reviewed clips at once.
 
 ---
 
@@ -255,6 +253,9 @@ Confirm the `library_name` in `config.yaml` matches your Plex library name exact
 
 **Plex auth fails or token is rejected**
 Re-run `plex-auth` to generate a fresh token — Plex tokens don't expire but can be revoked from your Plex account dashboard.
+
+**Plex scans not triggering / collections not updating**
+ReplayTagger still tags files and updates the database if Plex is unreachable — it logs a warning and continues. Check that `PLEX_URL` resolves from inside the container's network (use the LAN IP, not a hostname that only resolves on the host).
 
 ---
 
@@ -291,9 +292,6 @@ youtube:
   enabled: false
   auto_upload: false
   privacy: private
-  compress: true
-  resolution: 1080
-  crf: 28
   upload_after_days: 0
 ```
 
