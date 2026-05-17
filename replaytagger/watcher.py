@@ -61,10 +61,13 @@ def watch(
     callback: FileCallback,
     extensions: list[str],
     debounce_seconds: int = 10,
+    heartbeat_path: Path | None = None,
 ) -> None:
     """
     Block indefinitely, calling callback(path) for each new/modified clip.
     The debounce delay lets Syncthing finish writing before processing.
+    If heartbeat_path is provided, touches it on start and every 30 seconds
+    so Docker HEALTHCHECK can verify the watcher is alive.
     """
     handler = _ClipEventHandler(callback, extensions, debounce_seconds)
     observer = Observer()
@@ -72,9 +75,16 @@ def watch(
     observer.start()
     log.info("watching", directory=str(clips_dir), debounce_seconds=debounce_seconds)
 
+    if heartbeat_path:
+        heartbeat_path.touch()
+
     try:
+        tick = 0
         while observer.is_alive():
             time.sleep(1)
+            tick += 1
+            if heartbeat_path and tick % 30 == 0:
+                heartbeat_path.touch()
     except KeyboardInterrupt:
         log.info("watch_stopping")
     finally:

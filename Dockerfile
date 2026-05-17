@@ -38,8 +38,8 @@ USER replaytagger
 # /app/data — SQLite state DB and YouTube token persist here
 VOLUME ["/clips", "/app/data"]
 
-HEALTHCHECK --interval=60s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import replaytagger; print('ok')" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD python3 -c "import os,time; f='/app/data/.health'; exit(0 if os.path.exists(f) and time.time()-os.path.getmtime(f)<120 else 1)"
 
 ENTRYPOINT ["replaytagger", "--config", "/app/config.yaml"]
 CMD ["watch"]
