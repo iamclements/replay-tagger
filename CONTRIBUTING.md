@@ -28,6 +28,25 @@ source .venv/bin/activate
    - `chore:` tooling, deps, or config
 5. Open a pull request against `main`
 
+## Pull Request Format
+
+```
+Summary
+- What changed (one bullet per logical change)
+- Why it matters or what problem it solves
+- Dependencies added or removed
+
+Setup note (optional; include when reviewers need context before testing)
+Any prerequisite config, credential changes, or migration steps.
+
+Test plan
+- [ ] Specific step with expected outcome
+- [ ] Another step; verify X is logged / Y file is created
+- [ ] CI lint, type check, and tests pass
+```
+
+"Summary" and "Test plan" are plain text headers, not markdown. Docs-only PRs can omit the test plan if there's nothing to run.
+
 ## Code Style
 
 - Python 3.11+, formatted with `ruff format`, linted with `ruff check` and `mypy --strict`
