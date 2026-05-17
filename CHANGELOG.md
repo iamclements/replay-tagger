@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-05-17
+
 ### Added
 - Graceful startup when Plex token is missing or the server is unreachable; tagging continues and a `plex_degraded` warning is logged instead of exiting
 - PUID/PGID support via gosu-based entrypoint; the container drops to the specified UID/GID at runtime so tagged files are owned correctly on NAS and shared volume deployments

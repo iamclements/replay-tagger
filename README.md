@@ -41,7 +41,7 @@ Optional: a Google account for YouTube archiving.
 
 ## How it works
 
-NVIDIA GeForce Experience organizes clips by game:
+Your capture software organizes clips into per-game folders (NVIDIA GeForce Experience does this automatically):
 
 ```
 Videos/
@@ -64,14 +64,15 @@ Videos/
 
 ## Setup
 
-### Step 0: Get the files
+### Step 0: Get docker-compose.yml
 
-Clone the repo **on the machine that will run the container**, not your gaming PC:
+Download [docker-compose.yml](docker-compose.yml) to the machine that will run the container. The image is pulled automatically on first start; nothing else needs to be installed.
 
 ```bash
-git clone https://github.com/iamclements/replay-tagger
-cd replay-tagger
+curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/docker-compose.yml
 ```
+
+NAS and GUI users (Synology, Unraid, Portainer): download the file and skip to [NAS / Container Management UIs](#nas--container-management-uis).
 
 ---
 
@@ -85,7 +86,7 @@ cd replay-tagger
 
 Note the library name; it goes into `config.yaml` in Step 3.
 
-> **Agent tip:** if Plex is matching your clips against its movie database and overwriting the genre tag, go to the library's **Advanced** settings and switch the agent to **Personal Media**. ReplayTagger writes genre tags directly into the file (no online matching needed).
+> **Tip:** if Plex is matching your clips against its movie database and overwriting the genre tag, go to the library's **Advanced** settings and switch the agent to **Personal Media**. ReplayTagger writes genre tags directly into the file (no online matching needed).
 
 > **If the library name in config.yaml doesn't match exactly, ReplayTagger will start but Plex scans and collection creation will silently do nothing.** Check the logs if clips aren't appearing.
 
@@ -113,10 +114,7 @@ Alternatives:
 
 ### Step 3: Configure
 
-```bash
-cp config.yaml.example config.yaml
-cp .env.example .env
-```
+Download [config.yaml.example](config.yaml.example) and save it as `config.yaml` next to your `docker-compose.yml`. Create a `.env` file in the same directory.
 
 **`.env`**: set your clips path and Plex URL:
 
@@ -332,6 +330,12 @@ youtube:
   auto_upload: false
   privacy: private
   upload_after_days: 0
+
+notifications:
+  webhooks:
+    - url: https://discord.com/api/webhooks/...
+      type: discord                  # discord | generic
+      events: [scan_complete, error] # clip_tagged | clip_uploaded | scan_complete | error
 ```
 
 ### Environment variables
@@ -351,7 +355,7 @@ Secrets always go in `.env`, never in `config.yaml`:
 | `YOUTUBE_PRIVACY` | `private`, `unlisted`, or `public` |
 | `YOUTUBE_UPLOAD_AFTER_DAYS` | Override `upload_after_days` |
 | `LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING` (default: `INFO`) |
-| `LOG_FORMAT` | `json` or `pretty` (default: `json`) |
+| `LOG_FORMAT` | `json` or `text` (default: `json`) |
 
 ---
 
