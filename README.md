@@ -133,12 +133,13 @@ Secrets are passed as environment variables — never stored in `config.yaml` or
 replaytagger [--config PATH] [--dry-run] COMMAND
 
 Commands:
-  run           Scan all clips once, tag untagged files, then exit
-  watch         Watch for new clips and process them as they arrive
-  plex-auth     Run the Plex PIN OAuth flow (opens browser)
-  upload FILE   Upload a single clip to YouTube
-  youtube-auth  Run the YouTube OAuth2 flow (opens browser)
-  status        Show statistics from the state database
+  run            Scan all clips once, tag untagged files, then exit
+  watch          Watch for new clips and process them as they arrive
+  plex-auth      Plex PIN OAuth flow — prints a token to add to .env
+  youtube-auth   YouTube device flow — prints a URL + code, no browser needed
+  youtube-sync   Upload all tagged clips that have passed upload_after_days
+  upload FILE    Upload a single clip to YouTube
+  status         Show tagging and upload counts from the state database
 ```
 
 ```bash
@@ -147,6 +148,9 @@ replaytagger --dry-run run
 
 # Upload a specific clip as unlisted
 replaytagger upload "clips/Apex Legends/clip1.mp4" --privacy unlisted
+
+# Manually push all eligible clips to YouTube (ignores upload_after_days delay)
+replaytagger youtube-sync
 
 # Check tagging and upload counts
 replaytagger status
@@ -181,23 +185,59 @@ The token is permanent and tied to your Plex account. It is stored only in your 
 
 ## YouTube Setup
 
+ReplayTagger uses the OAuth2 **device flow** — no browser on the server required. You enter a short code on any device that has a browser.
+
+### 1. Google Cloud setup
+
 1. Create a project in [Google Cloud Console](https://console.cloud.google.com/)
 2. Enable the **YouTube Data API v3**
-3. Create an OAuth 2.0 **Desktop app** credential and download `client_secret.json`
-4. Rename it to `youtube_credentials.json` and place it in the project root
-5. Run the auth flow (opens a browser):
-   ```bash
-   replaytagger youtube-auth
-   ```
-6. Enable YouTube in `config.yaml`:
-   ```yaml
-   youtube:
-     enabled: true
-     auto_upload: false   # set true to upload automatically in watch mode
-     privacy: private
-   ```
+3. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID**
+4. Application type: **TV and Limited Input devices** *(not Desktop app — device flow requires this type)*
+5. Download the JSON and save it as `youtube_credentials.json` in your project root (or the path set in `config.yaml`)
 
-Clips are compressed with ffmpeg before uploading to reduce bandwidth. Upload IDs are stored in the state database so files are never uploaded twice.
+### 2. Authorize
+
+```bash
+replaytagger --config config.yaml youtube-auth
+```
+
+You'll see:
+
+```
+============================================================
+YouTube Authorization Required
+============================================================
+  1. Open:  https://www.google.com/device
+  2. Enter: XXXX-XXXX
+============================================================
+(Code expires in 30 minutes)
+```
+
+Open the URL on any device, enter the code, and sign in. The token is saved to `data/youtube_token.json` and reused on every subsequent run — you only authorize once.
+
+**Docker:** run `docker compose run --rm replaytagger youtube-auth` and enter the code in your browser as normal. No port forwarding needed.
+
+### 3. Enable in config.yaml
+
+```yaml
+youtube:
+  enabled: true
+  auto_upload: false        # set true to upload automatically in watch mode
+  privacy: private          # private | unlisted | public
+  upload_after_days: 0      # delay before auto_upload triggers (0 = immediate)
+```
+
+### Upload workflow
+
+| Goal | Command |
+|------|---------|
+| Upload a single clip now | `replaytagger upload "path/to/clip.mp4"` |
+| Upload all eligible clips in batch | `replaytagger youtube-sync` |
+| Auto-upload in watch mode | Set `auto_upload: true` in config.yaml |
+
+`youtube-sync` ignores the `upload_after_days` delay — useful when you've already reviewed and renamed your clips and want to push them all at once.
+
+Clips are compressed with ffmpeg before uploading to reduce bandwidth. A SHA256 fingerprint of each file is stored in the state database so files are never uploaded twice, even if they are renamed or moved.
 
 ---
 
