@@ -23,7 +23,8 @@ LABEL org.opencontainers.image.title="ReplayTagger" \
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends ffmpeg \
-    && rm -rf /var/lib/apt/lists/*
+    && rm -rf /var/lib/apt/lists/* \
+    && pip install --no-cache-dir --upgrade pip
 
 WORKDIR /app
 
