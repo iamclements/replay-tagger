@@ -41,6 +41,10 @@ plex:
   # Automatically create a smart collection per game via the Plex API
   auto_create_collections: true
 
+  # Set to false if your Plex server uses HTTPS with a self-signed cert (common on LAN)
+  # Also set PLEX_VERIFY_SSL=false in your .env
+  verify_ssl: true
+
 # ── YouTube archive ───────────────────────────────────────────────────────────
 youtube:
   enabled: false
@@ -57,6 +61,12 @@ youtube:
   compress: true
   resolution: 1080  # target height in pixels
   crf: 28           # quality (lower = better; 18–28 is a good range)
+
+  # Days a clip must sit in the folder before auto_upload triggers.
+  # Set to 0 (default) to upload immediately. Useful if you trim/rename clips
+  # after recording and want to give yourself time before they go to YouTube.
+  # Can also be set via YOUTUBE_UPLOAD_AFTER_DAYS in .env
+  upload_after_days: 0
 
   # Download from: Google Cloud Console > APIs & Services > Credentials
   credentials_file: youtube_credentials.json

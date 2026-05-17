@@ -21,6 +21,32 @@ from replaytagger.tagger import Tagger, compute_content_hash
 log = structlog.get_logger(__name__)
 
 
+def _validate_config(config: AppConfig) -> None:
+    errors = []
+
+    if config.plex.enabled and not config.plex.token:
+        errors.append("PLEX_TOKEN is required when plex.enabled is true")
+
+    if config.youtube.enabled:
+        if config.youtube.privacy not in ("private", "unlisted", "public"):
+            errors.append(
+                f"youtube.privacy must be private, unlisted, or public"
+                f" (got '{config.youtube.privacy}')"
+            )
+        if config.youtube.upload_after_days < 0:
+            errors.append("youtube.upload_after_days must be 0 or greater")
+        if config.youtube.auto_upload and not config.youtube.credentials_file.exists():
+            errors.append(f"youtube.credentials_file not found: {config.youtube.credentials_file}")
+
+    if config.debounce_seconds <= 0:
+        errors.append("debounce_seconds must be greater than 0")
+
+    if errors:
+        for error in errors:
+            log.error("config_error", reason=error)
+        sys.exit(1)
+
+
 def _build_plex(config: AppConfig):  # type: ignore[no-untyped-def]
     if not config.plex.enabled:
         return None
@@ -123,6 +149,7 @@ def main(ctx: click.Context, config_path: Path, dry_run: bool) -> None:
     ctx.ensure_object(dict)
     cfg = load_config(config_path)
     rt_logging.configure(cfg.logging.level, cfg.logging.format)
+    _validate_config(cfg)
     ctx.obj["config"] = cfg
     ctx.obj["dry_run"] = dry_run
 
