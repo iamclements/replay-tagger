@@ -12,8 +12,10 @@ extensions:
   - .mkv
   - .mov
 
-# Directory for the SQLite state database and YouTube token cache
-data_dir: /app/data
+# Directory for the SQLite state database and YouTube token cache.
+# Relative paths resolve from the working directory — in Docker (WORKDIR /app)
+# this becomes /app/data, which matches the volume mount in docker-compose.yml.
+data_dir: data
 
 # Path to ffmpeg/ffprobe binaries (both included in the Docker image)
 ffmpeg_path: ffmpeg
@@ -69,7 +71,11 @@ youtube:
   upload_after_days: 0
 
   # Download from: Google Cloud Console > APIs & Services > Credentials
-  credentials_file: youtube_credentials.json
+  # Place this file in your data directory — locally that is ./data/,
+  # in Docker it maps to /app/data/ via the volume mount.
+  # Alternatively set YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET env vars
+  # and skip the file entirely (recommended for Docker/Portainer deployments).
+  credentials_file: data/youtube_credentials.json
 
   # Auto-generated on first run of: replaytagger youtube-auth
   token_file: data/youtube_token.json

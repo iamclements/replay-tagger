@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import sys
 from datetime import UTC, datetime
 from pathlib import Path
@@ -35,8 +36,15 @@ def _validate_config(config: AppConfig) -> None:
             )
         if config.youtube.upload_after_days < 0:
             errors.append("youtube.upload_after_days must be 0 or greater")
-        if config.youtube.auto_upload and not config.youtube.credentials_file.exists():
-            errors.append(f"youtube.credentials_file not found: {config.youtube.credentials_file}")
+        has_env_creds = bool(
+            os.environ.get("YOUTUBE_CLIENT_ID") and os.environ.get("YOUTUBE_CLIENT_SECRET")
+        )
+        creds_file_missing = not config.youtube.credentials_file.exists()
+        if config.youtube.auto_upload and not has_env_creds and creds_file_missing:
+            errors.append(
+                f"YouTube credentials not found: set YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET"
+                f" env vars, or provide credentials_file: {config.youtube.credentials_file}"
+            )
 
     if config.debounce_seconds <= 0:
         errors.append("debounce_seconds must be greater than 0")

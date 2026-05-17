@@ -61,9 +61,12 @@ def authenticate(data_dir: Path) -> str:
         f"&context[device][product]={PRODUCT}"
     )
 
-    print("Opening Plex authorization in your browser...")
-    print(f"If it doesn't open automatically, visit:\n  {auth_url}\n")
-    webbrowser.open(auth_url)
+    print(f"\nOpen this URL in your browser to authorize:\n\n  {auth_url}\n")
+    try:
+        webbrowser.open(auth_url)
+        print("(Browser opened automatically)")
+    except Exception:
+        pass
 
     print("Waiting for you to authorize in the browser", end="", flush=True)
     deadline = time.monotonic() + TIMEOUT_SECONDS

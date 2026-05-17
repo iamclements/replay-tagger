@@ -193,7 +193,7 @@ ReplayTagger uses the OAuth2 **device flow** — no browser on the server requir
 2. Enable the **YouTube Data API v3**
 3. Go to **APIs & Services → Credentials → Create Credentials → OAuth client ID**
 4. Application type: **TV and Limited Input devices** *(not Desktop app — device flow requires this type)*
-5. Download the JSON and save it as `youtube_credentials.json` in your project root (or the path set in `config.yaml`)
+5. Download the JSON and save it as `youtube_credentials.json` in your `data/` folder (mapped to `/app/data` inside the container). Alternatively, skip the file and set `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET` env vars instead.
 
 ### 2. Authorize
 
