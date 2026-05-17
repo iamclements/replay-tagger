@@ -1,32 +1,33 @@
 services:
   replaytagger:
-    # Use pre-built image from GHCR, or build locally with: make docker-build
     image: ghcr.io/iamclements/replay-tagger:latest
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Uncomment to build locally instead of pulling from GHCR (requires cloning the repo)
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
     container_name: replaytagger
 
     volumes:
       # Mount your game clips folder (read-write so ffmpeg can re-mux files)
       - ${CLIPS_DIR:-./clips}:/clips
-      # Persist the SQLite state DB and YouTube token between restarts
+      # Persist the SQLite state DB and Plex/YouTube tokens between restarts
       - ./data:/app/data
-      # Mount your config file (read-only — secrets go in .env)
+      # Mount your config file (read-only; secrets go in .env)
       - ./config.yaml:/app/config.yaml:ro
 
     environment:
-      # User/group ID — match these to the owner of your clips folder on the host
+      # User/group ID; match these to the owner of your clips folder on the host
+      # Run `id` on the host to find the right values
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
-      # Plex — set these in your .env file, never commit secrets
+      # Plex; set these in your .env file, never commit secrets
       - PLEX_TOKEN=${PLEX_TOKEN:-}
       - PLEX_URL=${PLEX_URL:-http://localhost:32400}
-      # Set to false if using HTTPS with an IP address (Plex self-signed cert)
+      # Set to false if using HTTPS with a self-signed cert (common on LAN)
       - PLEX_VERIFY_SSL=${PLEX_VERIFY_SSL:-true}
       # Uncomment to enable YouTube uploads via environment (overrides config.yaml)
       # - YOUTUBE_ENABLED=true
-      # YouTube OAuth client credentials — alternative to mounting a credentials JSON file
+      # YouTube OAuth client credentials (alternative to mounting a credentials JSON file)
       - YOUTUBE_CLIENT_ID=${YOUTUBE_CLIENT_ID:-}
       - YOUTUBE_CLIENT_SECRET=${YOUTUBE_CLIENT_SECRET:-}
       # YouTube privacy override (private | unlisted | public)
@@ -34,11 +35,20 @@ services:
       # Uncomment to delay uploads until clips have been in the folder for N days
       # (gives time to trim and rename before they appear on YouTube)
       # - YOUTUBE_UPLOAD_AFTER_DAYS=3
-      # Logging — use "text" for human-readable output during dev
+      # Logging; use "text" for human-readable output during debugging
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LOG_FORMAT=${LOG_FORMAT:-json}
 
     restart: unless-stopped
+
+    # Watcher writes /app/data/.health every 30s; container managers (Portainer,
+    # Synology, Unraid) will show healthy/unhealthy automatically
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import os,time; f='/app/data/.health'; exit(0 if os.path.exists(f) and time.time()-os.path.getmtime(f)<120 else 1)"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 3
 
     # Run once and exit instead of watching (useful for Task Scheduler / cron)
     # profiles: [run-once]
