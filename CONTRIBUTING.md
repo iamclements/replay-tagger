@@ -30,21 +30,22 @@ source .venv/bin/activate
 
 ## Pull Request Format
 
-Write the description as plain prose: 2-4 sentences explaining what changed and why. For PRs that change behavior or add a feature, include a `## Test cases` section with specific shell commands and expected output so reviewers can verify the change manually. Docs-only PRs don't need test cases.
-
-Example:
-
 ```
-Adds webhook notifications for Discord and generic HTTP endpoints. Four events
-are supported (clip_tagged, clip_uploaded, scan_complete, error) with per-webhook
-event filtering so large-library users can skip per-clip noise.
+Summary
+- What changed (one bullet per logical change)
+- Why it matters or what problem it solves
+- Dependencies added or removed
 
-## Test cases
+Setup note (optional; include when reviewers need context before testing)
+Any prerequisite config, credential changes, or migration steps.
 
-- [ ] `make test` passes (covers payload structure, event filtering, error resilience)
-- [ ] Add a Discord webhook to config.yaml, run `replaytagger run`, verify embed appears
-- [ ] Remove the webhook URL, confirm tagging still completes without error
+Test plan
+- [ ] Specific step with expected outcome
+- [ ] Another step; verify X is logged / Y file is created
+- [ ] CI lint, type check, and tests pass
 ```
+
+"Summary" and "Test plan" are plain text headers, not markdown. Docs-only PRs can omit the test plan if there's nothing to run.
 
 ## Code Style
 
