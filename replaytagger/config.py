@@ -36,6 +36,18 @@ class LoggingConfig:
 
 
 @dataclass
+class WebhookConfig:
+    url: str
+    type: str = "generic"  # "discord" | "generic"
+    events: list[str] = field(default_factory=lambda: ["scan_complete", "error"])
+
+
+@dataclass
+class NotificationsConfig:
+    webhooks: list[WebhookConfig] = field(default_factory=list)
+
+
+@dataclass
 class AppConfig:
     clips_dir: Path = Path("/clips")
     extensions: list[str] = field(default_factory=lambda: [".mp4", ".mkv", ".mov"])
@@ -46,6 +58,7 @@ class AppConfig:
     plex: PlexConfig = field(default_factory=PlexConfig)
     youtube: YouTubeConfig = field(default_factory=YouTubeConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
+    notifications: NotificationsConfig = field(default_factory=NotificationsConfig)
 
 
 def load_config(config_path: Path) -> AppConfig:
@@ -57,6 +70,7 @@ def load_config(config_path: Path) -> AppConfig:
     plex_data = data.get("plex", {})
     youtube_data = data.get("youtube", {})
     logging_data = data.get("logging", {})
+    notif_data = data.get("notifications", {})
 
     # Environment variables override config file values — secrets never go in config.yaml
     clips_dir = Path(os.environ.get("CLIPS_DIR", data.get("clips_dir", "/clips")))
@@ -111,6 +125,17 @@ def load_config(config_path: Path) -> AppConfig:
         token_file=Path(yt_token),
     )
 
+    notifications = NotificationsConfig(
+        webhooks=[
+            WebhookConfig(
+                url=wh["url"],
+                type=wh.get("type", "generic"),
+                events=wh.get("events", ["scan_complete", "error"]),
+            )
+            for wh in notif_data.get("webhooks", [])
+        ]
+    )
+
     return AppConfig(
         clips_dir=clips_dir,
         extensions=data.get("extensions", [".mp4", ".mkv", ".mov"]),
@@ -121,4 +146,5 @@ def load_config(config_path: Path) -> AppConfig:
         plex=plex,
         youtube=youtube,
         logging=LoggingConfig(level=log_level, format=log_format),
+        notifications=notifications,
     )

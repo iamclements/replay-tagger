@@ -10,6 +10,7 @@ import click
 import structlog
 
 if TYPE_CHECKING:
+    from replaytagger.notifications import NotificationClient
     from replaytagger.plex_client import PlexClient
     from replaytagger.youtube_client import YouTubeClient
 
@@ -81,6 +82,14 @@ def _build_plex(config: AppConfig):  # type: ignore[no-untyped-def]
         return None
 
 
+def _build_notifications(config: AppConfig):  # type: ignore[no-untyped-def]
+    if not config.notifications.webhooks:
+        return None
+    from replaytagger.notifications import NotificationClient
+
+    return NotificationClient(config.notifications.webhooks)
+
+
 def _build_youtube(config: AppConfig):  # type: ignore[no-untyped-def]
     if not config.youtube.enabled:
         return None
@@ -99,13 +108,14 @@ def _process_file(
     plex: PlexClient | None,
     youtube: YouTubeClient | None,
     dry_run: bool,
-) -> None:
+    notifier: NotificationClient | None = None,
+) -> bool:
     game_name = file_path.parent.name
     bound = log.bind(file=file_path.name, game=game_name)
 
     if db.is_tagged(file_path):
         bound.debug("skipped", reason="already_tagged")
-        return
+        return False
 
     tagged = tagger.tag(file_path, game_name, dry_run=dry_run)
 
@@ -117,16 +127,20 @@ def _process_file(
 
     if tagged and not dry_run:
         db.mark_tagged(file_path, game_name, content_hash)
+        if notifier:
+            from replaytagger.notifications import NotifyEvent
+
+            notifier.notify(NotifyEvent.CLIP_TAGGED, game=game_name, file=file_path.name)
 
     if youtube and config.youtube.auto_upload and not dry_run:
         # Content-hash dedup (path-independent — survives renames)
         if content_hash and db.get_youtube_id_by_hash(content_hash) is not None:
             bound.debug("skipped_upload", reason="already_uploaded")
-            return
+            return tagged
         # Legacy path-based dedup for clips uploaded before hash tracking
         if db.get_youtube_id(file_path) is not None:
             bound.debug("skipped_upload", reason="already_uploaded")
-            return
+            return tagged
         # Age gate — wait for the clip to be reviewed/renamed before uploading
         first_seen = db.get_first_seen(file_path)
         if first_seen is not None:
@@ -137,7 +151,7 @@ def _process_file(
                     age_days=age_days,
                     required=config.youtube.upload_after_days,
                 )
-                return
+                return tagged
         try:
             video_id = youtube.upload(
                 file_path,
@@ -145,8 +159,19 @@ def _process_file(
                 privacy=config.youtube.privacy,
             )
             db.mark_uploaded(file_path, video_id)
+            if notifier:
+                from replaytagger.notifications import NotifyEvent
+
+                notifier.notify(
+                    NotifyEvent.CLIP_UPLOADED,
+                    game=game_name,
+                    file=file_path.name,
+                    video_id=video_id,
+                )
         except Exception as exc:
             bound.error("upload_failed", error=str(exc))
+
+    return tagged
 
 
 @click.group()
@@ -185,6 +210,7 @@ def run(ctx: click.Context) -> None:
     tagger = Tagger(config.ffmpeg_path, config.ffprobe_path)
     plex = _build_plex(config)
     youtube = _build_youtube(config)
+    notifier = _build_notifications(config)
 
     if not config.clips_dir.exists():
         log.error("clips_dir_not_found", path=str(config.clips_dir))
@@ -198,11 +224,17 @@ def run(ctx: click.Context) -> None:
 
     log.info("scan_started", total=len(clips), dry_run=dry_run)
 
+    newly_tagged = 0
     for clip in clips:
         try:
-            _process_file(clip, config, tagger, db, plex, youtube, dry_run)
+            if _process_file(clip, config, tagger, db, plex, youtube, dry_run, notifier):
+                newly_tagged += 1
         except Exception as exc:
             log.error("file_error", file=clip.name, error=str(exc))
+            if notifier:
+                from replaytagger.notifications import NotifyEvent
+
+                notifier.notify(NotifyEvent.ERROR, file=clip.name, error=str(exc))
 
     # Ensure collections exist for every game in the clips directory
     if plex and config.plex.auto_create_collections:
@@ -215,6 +247,11 @@ def run(ctx: click.Context) -> None:
 
     stats = db.stats()
     log.info("scan_complete", **stats)
+
+    if notifier and not dry_run:
+        from replaytagger.notifications import NotifyEvent
+
+        notifier.notify(NotifyEvent.SCAN_COMPLETE, tagged=newly_tagged, total=len(clips))
 
 
 @main.command()
@@ -230,6 +267,7 @@ def watch(ctx: click.Context) -> None:
     tagger = Tagger(config.ffmpeg_path, config.ffprobe_path)
     plex = _build_plex(config)
     youtube = _build_youtube(config)
+    notifier = _build_notifications(config)
 
     if not config.clips_dir.exists():
         log.error("clips_dir_not_found", path=str(config.clips_dir))
@@ -241,11 +279,15 @@ def watch(ctx: click.Context) -> None:
 
     def on_new_clip(file_path: Path) -> None:
         try:
-            _process_file(file_path, config, tagger, db, plex, youtube, dry_run)
+            _process_file(file_path, config, tagger, db, plex, youtube, dry_run, notifier)
             if plex and config.plex.auto_scan:
                 plex.scan()
         except Exception as exc:
             log.error("watch_file_error", file=file_path.name, error=str(exc))
+            if notifier:
+                from replaytagger.notifications import NotifyEvent
+
+                notifier.notify(NotifyEvent.ERROR, file=file_path.name, error=str(exc))
 
     watch_clips(
         config.clips_dir,
