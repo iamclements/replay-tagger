@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import requests
 import structlog
@@ -34,7 +34,7 @@ _DISCORD_TITLES: dict[NotifyEvent, str] = {
 }
 
 
-def _discord_payload(event: NotifyEvent, data: dict[str, object]) -> dict[str, object]:
+def _discord_payload(event: NotifyEvent, data: dict[str, Any]) -> dict[str, Any]:
     fields = [{"name": k, "value": str(v), "inline": True} for k, v in data.items()]
     return {
         "embeds": [
@@ -47,7 +47,7 @@ def _discord_payload(event: NotifyEvent, data: dict[str, object]) -> dict[str, o
     }
 
 
-def _generic_payload(event: NotifyEvent, data: dict[str, object]) -> dict[str, object]:
+def _generic_payload(event: NotifyEvent, data: dict[str, Any]) -> dict[str, Any]:
     return {"event": event.value, "data": data}
 
 
