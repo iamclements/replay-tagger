@@ -22,7 +22,7 @@ LABEL org.opencontainers.image.title="ReplayTagger" \
 
 RUN apt-get update \
     && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends ffmpeg \
+    && apt-get install -y --no-install-recommends ffmpeg gosu \
     && rm -rf /var/lib/apt/lists/* \
     && pip install --no-cache-dir --upgrade pip
 
@@ -30,12 +30,13 @@ WORKDIR /app
 
 COPY --from=builder /install /usr/local
 
-# Non-root user for security
+# Create non-root user; entrypoint will remap UID/GID at runtime via PUID/PGID
 RUN useradd --create-home --uid 1000 replaytagger \
     && mkdir -p /clips /app/data \
     && chown -R replaytagger:replaytagger /app /clips
 
-USER replaytagger
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
 # /clips  — mount your game clips directory here
 # /app/data — SQLite state DB and YouTube token persist here
@@ -44,5 +45,5 @@ VOLUME ["/clips", "/app/data"]
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD python3 -c "import os,time; f='/app/data/.health'; exit(0 if os.path.exists(f) and time.time()-os.path.getmtime(f)<120 else 1)"
 
-ENTRYPOINT ["replaytagger", "--config", "/app/config.yaml"]
+ENTRYPOINT ["/entrypoint.sh", "replaytagger", "--config", "/app/config.yaml"]
 CMD ["watch"]
