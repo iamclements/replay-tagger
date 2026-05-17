@@ -62,12 +62,18 @@ def load_config(config_path: Path) -> AppConfig:
     logging_data = data.get("logging", {})
 
     # Environment variables override config file values — secrets never go in config.yaml
-    plex_token = os.environ.get("PLEX_TOKEN", plex_data.get("token", ""))
+    clips_dir = Path(os.environ.get("CLIPS_DIR", data.get("clips_dir", "/clips")))
+    data_dir = Path(os.environ.get("DATA_DIR", data.get("data_dir", "data")))
     plex_url = os.environ.get("PLEX_URL", plex_data.get("url", "http://localhost:32400"))
     _verify_ssl_env = os.environ.get("PLEX_VERIFY_SSL", "").lower()
     plex_verify_ssl = False if _verify_ssl_env == "false" else plex_data.get("verify_ssl", True)
-    clips_dir = Path(os.environ.get("CLIPS_DIR", data.get("clips_dir", "/clips")))
-    data_dir = Path(os.environ.get("DATA_DIR", data.get("data_dir", "data")))
+
+    # Token priority: PLEX_TOKEN env var → config.yaml → token file saved by plex-auth
+    plex_token = os.environ.get("PLEX_TOKEN", plex_data.get("token", ""))
+    if not plex_token:
+        _token_file = data_dir / "plex_token"
+        if _token_file.exists():
+            plex_token = _token_file.read_text().strip()
     log_level = os.environ.get("LOG_LEVEL", logging_data.get("level", "INFO"))
     log_format = os.environ.get("LOG_FORMAT", logging_data.get("format", "json"))
 

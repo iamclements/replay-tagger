@@ -160,26 +160,42 @@ replaytagger status
 
 ## Plex Setup
 
-1. Run the auth flow (opens a browser to plex.tv):
-   ```bash
-   replaytagger plex-auth
+### Option A — device console / Portainer (no env var needed)
+
+Run the auth flow from the container console or a one-off container:
+
+```bash
+docker compose run --rm replaytagger plex-auth
+```
+
+Open the printed URL in any browser, sign in, and click **Allow**. The token is saved automatically to `data/plex_token` (your mounted data volume) and loaded on every subsequent start — no environment variable or container restart required.
+
+### Option B — set the token directly
+
+Get your token from the Plex web UI without running any CLI:
+
+1. Open Plex Web and browse to any item in your library
+2. Click `···` → **Get Info** → **View XML**
+3. Copy the `X-Plex-Token=XXXXX` value from the browser URL
+4. Set it in your `.env` or Portainer stack environment:
    ```
-2. Sign in and click **Allow** when prompted
-3. The command prints a permanent token — add it to your `.env`:
-   ```bash
    PLEX_TOKEN=your_token_here
    PLEX_URL=http://192.168.1.x:32400
    ```
-4. Enable Plex in `config.yaml`:
-   ```yaml
-   plex:
-     enabled: true
-     library_name: "Game Clips"
-     auto_scan: true
-     auto_create_collections: true
-   ```
 
-The token is permanent and tied to your Plex account. It is stored only in your local `.env` file, which is excluded from git.
+The env var takes priority over the token file if both are present.
+
+### Enable Plex in config.yaml
+
+```yaml
+plex:
+  enabled: true
+  library_name: "Game Clips"
+  auto_scan: true
+  auto_create_collections: true
+```
+
+The token is permanent and tied to your Plex account.
 
 ---
 

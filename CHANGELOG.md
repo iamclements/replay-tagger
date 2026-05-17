@@ -12,13 +12,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `replaytagger youtube-sync` command — manually upload all tagged clips that have passed the `upload_after_days` threshold, without waiting for watch mode
 - `upload_after_days` config option and `YOUTUBE_UPLOAD_AFTER_DAYS` env var — delay before `auto_upload` triggers, giving time to trim/rename clips before they go to YouTube (0 = upload immediately)
 - `YOUTUBE_ENABLED` env var — enable/disable YouTube without editing `config.yaml`
+- `YOUTUBE_CLIENT_ID` and `YOUTUBE_CLIENT_SECRET` env vars — pass GCP OAuth credentials directly without mounting a credentials JSON file; recommended for Docker/Portainer deployments
 - Content hash dedup — SHA256 fingerprint of the first 4 MB of each file stored alongside the YouTube video ID, so clips are never uploaded twice even if renamed or moved between Docker and local paths
 - Config validation on startup — missing tokens, invalid privacy values, and bad paths all produce clear error messages and a non-zero exit code instead of failing at runtime
 - Docker `HEALTHCHECK` — watcher touches `/app/data/.health` every 30 s; the health check verifies the file is less than 120 s old
+- Plex token file persistence — `plex-auth` saves the token to `data/plex_token` automatically; loaded on startup without needing a `PLEX_TOKEN` env var (env var still takes priority if set)
 
 ### Changed
 - `auto_upload` in watch mode now respects `upload_after_days`; `youtube-sync` always ignores it
 - YouTube video title is now the clip filename stem only (removed the `Game | ` prefix)
+- `plex-auth` prints the authorization URL before attempting to open a browser, so it works correctly in Docker and headless environments
+- Base Docker image changed from `python:3.14-slim` to `python:3.12-slim`; added `apt-get upgrade` and pip upgrade to eliminate Trivy CVEs
+- `config.yaml.example` uses relative paths for `data_dir`, `credentials_file`, and `token_file` — resolves correctly in both local dev and Docker (WORKDIR `/app`)
 
 ### Removed
 - `google-auth-oauthlib` dependency — device flow is implemented with stdlib `urllib`

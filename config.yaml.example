@@ -31,8 +31,10 @@ plex:
   # Plex server URL (LAN address is fine — no Plex relay needed)
   url: http://192.168.1.100:32400
 
-  # Set PLEX_TOKEN in your .env file; do not paste the token here
-  # token: set via PLEX_TOKEN environment variable
+  # Token is loaded in priority order:
+  #   1. PLEX_TOKEN environment variable
+  #   2. data/plex_token file (written automatically by: replaytagger plex-auth)
+  # Do not paste the token directly in this file.
 
   # Name of your game clips library in Plex
   library_name: "Game Clips"
