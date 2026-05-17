@@ -108,7 +108,7 @@ def _process_file(
     plex: PlexClient | None,
     youtube: YouTubeClient | None,
     dry_run: bool,
-    notifier: NotificationClient | None = None,
+    notifier: NotificationClient | None = None,  # reserved for clip_uploaded
 ) -> bool:
     game_name = file_path.parent.name
     bound = log.bind(file=file_path.name, game=game_name)
@@ -127,10 +127,6 @@ def _process_file(
 
     if tagged and not dry_run:
         db.mark_tagged(file_path, game_name, content_hash)
-        if notifier:
-            from replaytagger.notifications import NotifyEvent
-
-            notifier.notify(NotifyEvent.CLIP_TAGGED, game=game_name, file=file_path.name)
 
     if youtube and config.youtube.auto_upload and not dry_run:
         # Content-hash dedup (path-independent — survives renames)
@@ -248,7 +244,7 @@ def run(ctx: click.Context) -> None:
     stats = db.stats()
     log.info("scan_complete", **stats)
 
-    if notifier and not dry_run:
+    if notifier and not dry_run and newly_tagged > 0:
         from replaytagger.notifications import NotifyEvent
 
         notifier.notify(NotifyEvent.SCAN_COMPLETE, tagged=newly_tagged, total=len(clips))
@@ -279,9 +275,17 @@ def watch(ctx: click.Context) -> None:
 
     def on_new_clip(file_path: Path) -> None:
         try:
-            _process_file(file_path, config, tagger, db, plex, youtube, dry_run, notifier)
+            newly = _process_file(file_path, config, tagger, db, plex, youtube, dry_run, notifier)
             if plex and config.plex.auto_scan:
                 plex.scan()
+            if notifier and newly and not dry_run:
+                from replaytagger.notifications import NotifyEvent
+
+                notifier.notify(
+                    NotifyEvent.CLIP_TAGGED,
+                    game=file_path.parent.name,
+                    file=file_path.name,
+                )
         except Exception as exc:
             log.error("watch_file_error", file=file_path.name, error=str(exc))
             if notifier:

@@ -13,8 +13,8 @@ extensions:
   - .mov
 
 # Directory for the SQLite state database and YouTube token cache.
-# Relative paths resolve from the working directory — in Docker (WORKDIR /app)
-# this becomes /app/data, which matches the volume mount in docker-compose.yml.
+# Keep as "data" (relative) — resolves to /app/data inside the container and
+# ./data when running locally. Only change this if you need a custom path.
 data_dir: data
 
 # Path to ffmpeg/ffprobe binaries (both included in the Docker image)
