@@ -37,9 +37,9 @@ source .venv/bin/activate
 ## Reporting Issues
 
 Use the provided issue templates:
-- **Bug Report** — reproduction steps, environment details, error output
-- **Feature Request** — problem statement, proposed solution, example usage
+- **Bug Report**: reproduction steps, environment details, error output
+- **Feature Request**: problem statement, proposed solution, example usage
 
 ## Questions?
 
-Open an issue — happy to discuss before you start coding.
+Open an issue; happy to discuss before you start coding.
