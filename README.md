@@ -1,8 +1,7 @@
-<p align="center">
-  <img src="docs/images/logo.svg" width="80" alt="ReplayTagger logo">
-</p>
-
-# ReplayTagger
+<h1>
+  <img src="docs/images/logo.svg" width="40" alt="">
+  ReplayTagger
+</h1>
 
 Automatically tag NVIDIA Instant Replay clips by game and organize them into Plex collections — with optional YouTube archiving.
 
@@ -177,28 +176,9 @@ Inside the container the token is at `/app/data/plex_token`; on the host that's 
 
 ### Step 5 — Set up volumes and start
 
-Edit the **left side** of each volume mount and the `PUID`/`PGID` values to match your host. Everything else can stay as-is:
+Copy [docker-compose.yml](docker-compose.yml) from the repo to your server. Edit the **left side** of each volume mount and set `PUID`/`PGID` to match the owner of your clips folder — run `id` on the host to find the right values.
 
-```yaml
-services:
-  replaytagger:
-    image: ghcr.io/iamclements/replay-tagger:latest
-    container_name: replaytagger
-    volumes:
-      - /mnt/clips:/clips                          # ← your host clips dir
-      - /mnt/appdata/replaytagger:/app/data        # ← same data dir from Step 4
-      - /mnt/appdata/replaytagger/config.yaml:/app/config.yaml:ro
-    environment:
-      - PUID=1000          # ← run `id` on your server to find the right value
-      - PGID=1000
-      - PLEX_URL=http://192.168.1.100:32400
-      - PLEX_TOKEN=${PLEX_TOKEN:-}
-      - LOG_LEVEL=INFO
-      - LOG_FORMAT=json
-    restart: unless-stopped
-```
-
-> `CLIPS_DIR` is always `/clips` inside the container — only the host-side path (left of the colon) changes. Set `PUID`/`PGID` to match the UID/GID that owns your clips folder on the host (`id` prints both).
+> `CLIPS_DIR` is always `/clips` inside the container — only the host-side path (left of the colon) changes.
 
 ```bash
 docker compose up -d
