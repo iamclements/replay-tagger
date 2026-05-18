@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 import warnings
 
+import plexapi
 import requests
 import structlog
 from plexapi.exceptions import NotFound, Unauthorized
@@ -24,16 +25,15 @@ class PlexClient:
 
     def _connect(self) -> None:
         try:
+            # plexapi reads these module-level vars in every request's _headers(); session-level
+            # headers are overridden per-request so this is the correct way to set identification.
+            _identifier = str(uuid.uuid5(uuid.NAMESPACE_URL, self._url))
+            plexapi.X_PLEX_PRODUCT = "ReplayTagger"
+            plexapi.X_PLEX_DEVICE = "ReplayTagger"
+            plexapi.X_PLEX_DEVICE_NAME = "ReplayTagger"
+            plexapi.X_PLEX_IDENTIFIER = _identifier
             session = requests.Session()
             session.verify = self._verify_ssl
-            session.headers.update(
-                {
-                    "X-Plex-Product": "ReplayTagger",
-                    "X-Plex-Device-Name": "ReplayTagger",
-                    # Stable ID per server; prevents Plex registering a new device on each restart
-                    "X-Plex-Client-Identifier": str(uuid.uuid5(uuid.NAMESPACE_URL, self._url)),
-                }
-            )
             if not self._verify_ssl:
                 log.warning("plex_ssl_verification_disabled", url=self._url)
                 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
