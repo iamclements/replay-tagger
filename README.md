@@ -149,34 +149,17 @@ See [config.yaml.example](config.yaml.example) for all options with inline docum
 
 ---
 
-### Step 4: Authorize Plex
+### Step 4: Get your Plex token
 
-Get your Plex token before starting the container. This uses the [Plex PIN auth flow](https://forums.plex.tv/t/authenticating-with-plex/609370). It contacts plex.tv directly, so your local Plex server doesn't need to be reachable, and you don't need docker-compose set up yet.
-
-Run it as a one-off container, mounting only the data folder where the token will be saved:
+In Plex Web, browse to any item in your library, click **(...)** → **Get Info** → **View XML**, and copy the value of `X-Plex-Token` from the URL bar. Paste it into `.env`:
 
 ```bash
-docker run --rm -it \
-  -v /mnt/appdata/replaytagger:/app/data \
-  ghcr.io/iamclements/replay-tagger:latest \
-  replaytagger plex-auth
+PLEX_TOKEN=xxxxxxxxxxxxxxxxxxxx
 ```
 
-Replace `/mnt/appdata/replaytagger` with your data directory; create it first if it doesn't exist (`mkdir -p /mnt/appdata/replaytagger`). The token is written to `plex_token` in that directory automatically.
+Plex tokens don't expire and grant full access to your account; treat this value like a password and never commit it to git.
 
-```
-Open this URL in your browser to authorize:
-
-  https://app.plex.tv/auth#?clientID=...&code=XXXX
-
-Waiting for authorization ...
-Authorization successful!
-Token saved to /app/data/plex_token
-```
-
-Inside the container the token is at `/app/data/plex_token`; on the host that's `<your-data-dir>/plex_token`. ReplayTagger loads it on startup; no env var needed.
-
-**Alternative:** Set `PLEX_TOKEN=your_token` in `.env` instead. The env var takes priority over the token file.
+> **Alternative:** run `replaytagger plex-auth` for a guided browser-based flow that saves the token to `data/plex_token` automatically. See the [CLI Reference](#cli-reference) for details.
 
 ---
 
@@ -286,7 +269,7 @@ Check that the left side of the `/clips` volume in `docker-compose.yml` points t
 Confirm the `library_name` in `config.yaml` matches your Plex library name exactly (case-sensitive). Also verify "Automatically create collections by genre" is enabled in the library's Advanced settings.
 
 **Plex auth fails or token is rejected**
-Re-run `plex-auth` to generate a fresh token; Plex tokens don't expire but can be revoked from your Plex account dashboard.
+Get a fresh token from Plex Web (View XML method in Step 4) and update `PLEX_TOKEN` in `.env`. Tokens don't expire but are invalidated if you change your Plex password or revoke devices from your Plex account dashboard.
 
 **Plex scans not triggering / collections not updating**
 ReplayTagger still tags files and updates the database if Plex is unreachable; it logs a warning and continues. Check that `PLEX_URL` resolves from inside the container's network (use the LAN IP, not a hostname that only resolves on the host).

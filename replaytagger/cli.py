@@ -30,8 +30,8 @@ def _validate_config(config: AppConfig) -> None:
         log.warning(
             "plex_token_missing",
             reason=(
-                "plex.enabled is true but no token found"
-                " — run 'replaytagger plex-auth' to authorize"
+                "plex.enabled is true but no token found;"
+                " set PLEX_TOKEN in .env (Plex Web → any item → (...) → Get Info → View XML)"
             ),
         )
 
