@@ -25,13 +25,17 @@ class PlexClient:
 
     def _connect(self) -> None:
         try:
-            # plexapi reads these module-level vars in every request's _headers(); session-level
-            # headers are overridden per-request so this is the correct way to set identification.
+            # plexapi.BASE_HEADERS is built once at import time and copied per-request.
+            # Mutate it in-place so server.py's already-bound reference picks up our values.
             _identifier = str(uuid.uuid5(uuid.NAMESPACE_URL, self._url))
-            plexapi.X_PLEX_PRODUCT = "ReplayTagger"
-            plexapi.X_PLEX_DEVICE = "ReplayTagger"
-            plexapi.X_PLEX_DEVICE_NAME = "ReplayTagger"
-            plexapi.X_PLEX_IDENTIFIER = _identifier
+            plexapi.BASE_HEADERS.update(
+                {
+                    "X-Plex-Product": "ReplayTagger",
+                    "X-Plex-Device": "ReplayTagger",
+                    "X-Plex-Device-Name": "ReplayTagger",
+                    "X-Plex-Client-Identifier": _identifier,
+                }
+            )
             session = requests.Session()
             session.verify = self._verify_ssl
             if not self._verify_ssl:
