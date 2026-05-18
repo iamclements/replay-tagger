@@ -14,7 +14,7 @@ log = structlog.get_logger(__name__)
 
 
 def compute_content_hash(file_path: Path, max_bytes: int = 4 * 1024 * 1024) -> str:
-    """SHA256 of the first max_bytes of a file — fast fingerprint for dedup."""
+    """SHA256 of the first max_bytes of a file; fast fingerprint for dedup."""
     h = hashlib.sha256()
     with open(file_path, "rb") as f:
         h.update(f.read(max_bytes))

@@ -72,7 +72,7 @@ def load_config(config_path: Path) -> AppConfig:
     logging_data = data.get("logging", {})
     notif_data = data.get("notifications", {})
 
-    # Environment variables override config file values — secrets never go in config.yaml
+    # Environment variables override config file values; secrets never go in config.yaml
     clips_dir = Path(os.environ.get("CLIPS_DIR", data.get("clips_dir", "/clips")))
     data_dir = Path(os.environ.get("DATA_DIR", data.get("data_dir", "data")))
     plex_url = os.environ.get("PLEX_URL", plex_data.get("url", "http://localhost:32400"))

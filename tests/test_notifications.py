@@ -31,7 +31,7 @@ def _generic(events=None) -> WebhookConfig:
 def test_discord_payload_structure():
     payload = _discord_payload(NotifyEvent.SCAN_COMPLETE, {"tagged": 5, "total": 10})
     embed = payload["embeds"][0]
-    assert embed["title"] == "ReplayTagger — Scan Complete"
+    assert embed["title"] == "ReplayTagger: Scan Complete"
     assert embed["color"] == 0x5865F2
     fields = {f["name"]: f["value"] for f in embed["fields"]}
     assert fields["tagged"] == "5"

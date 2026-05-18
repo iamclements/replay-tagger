@@ -34,7 +34,7 @@ class YouTubeClient:
         self._service: Any = None
 
     def _device_flow(self) -> Credentials:
-        """OAuth2 device flow — works in Docker/headless environments.
+        """OAuth2 device flow for Docker/headless environments.
 
         Prints a URL and short code; the user enters the code at google.com/device.
         Credentials are sourced from YOUTUBE_CLIENT_ID/YOUTUBE_CLIENT_SECRET env vars
@@ -49,7 +49,7 @@ class YouTubeClient:
             client_info: dict[str, str] = raw.get("installed") or raw.get("web") or {}
             if not client_info:
                 raise ValueError(
-                    "Unrecognised credentials file format — expected 'installed' or 'web' key.\n"
+                    "Unrecognised credentials file format; expected 'installed' or 'web' key.\n"
                     "Re-download from Google Cloud Console > APIs & Services > Credentials."
                 )
             client_id = client_info["client_id"]
@@ -101,7 +101,7 @@ class YouTubeClient:
                     raise RuntimeError("YouTube authorization denied.")
                 else:
                     raise RuntimeError(
-                        f"OAuth2 error: {error} — {body.get('error_description', '')}"
+                        f"OAuth2 error: {error}: {body.get('error_description', '')}"
                     )
 
             return Credentials(  # type: ignore[no-untyped-call]
@@ -113,7 +113,7 @@ class YouTubeClient:
                 scopes=SCOPES,
             )
 
-        raise RuntimeError("Authorization timed out — the code expired before it was entered.")
+        raise RuntimeError("Authorization timed out; the code expired before it was entered.")
 
     def authenticate(self) -> None:
         """Run OAuth2 device flow on first run; refreshes token silently after."""
