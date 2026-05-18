@@ -341,6 +341,7 @@ Secrets always go in `.env`, never in `config.yaml`:
 | `CLIPS_DIR` | Path to the clips folder on your server |
 | `PLEX_URL` | Your Plex server URL |
 | `PLEX_TOKEN` | Plex token (alternative to running `plex-auth`) |
+| `PLEX_VERIFY_SSL` | Set to `false` if Plex uses a self-signed cert (default: `true`) |
 | `YOUTUBE_CLIENT_ID` | GCP OAuth client ID |
 | `YOUTUBE_CLIENT_SECRET` | GCP OAuth client secret |
 | `YOUTUBE_ENABLED` | `true` or `false`; overrides config.yaml |
