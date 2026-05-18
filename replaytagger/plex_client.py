@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import uuid
 import warnings
 
+import plexapi
 import requests
 import structlog
 from plexapi.exceptions import NotFound, Unauthorized
@@ -23,6 +25,17 @@ class PlexClient:
 
     def _connect(self) -> None:
         try:
+            # plexapi.BASE_HEADERS is built once at import time and copied per-request.
+            # Mutate it in-place so server.py's already-bound reference picks up our values.
+            _identifier = str(uuid.uuid5(uuid.NAMESPACE_URL, self._url))
+            plexapi.BASE_HEADERS.update(
+                {
+                    "X-Plex-Product": "ReplayTagger",
+                    "X-Plex-Device": "ReplayTagger",
+                    "X-Plex-Device-Name": "ReplayTagger",
+                    "X-Plex-Client-Identifier": _identifier,
+                }
+            )
             session = requests.Session()
             session.verify = self._verify_ssl
             if not self._verify_ssl:

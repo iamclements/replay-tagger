@@ -30,8 +30,8 @@ def _validate_config(config: AppConfig) -> None:
         log.warning(
             "plex_token_missing",
             reason=(
-                "plex.enabled is true but no token found"
-                " — run 'replaytagger plex-auth' to authorize"
+                "plex.enabled is true but no token found;"
+                " set PLEX_TOKEN in .env (Plex Web → any item → (...) → Get Info → View XML)"
             ),
         )
 
@@ -77,7 +77,7 @@ def _build_plex(config: AppConfig):  # type: ignore[no-untyped-def]
     except Exception:
         log.warning(
             "plex_degraded",
-            reason="connection failed — tagging will continue without Plex integration",
+            reason="connection failed; tagging will continue without Plex integration",
         )
         return None
 
@@ -120,7 +120,7 @@ def _process_file(
     tagged = tagger.tag(file_path, game_name, dry_run=dry_run)
 
     if not tagged and not dry_run and tagger.get_genre(file_path) == game_name:
-        # Genre was written in a prior run but not recorded in DB — backfill it
+        # Genre was written in a prior run but not recorded in DB; backfill it
         tagged = True
 
     content_hash = compute_content_hash(file_path) if not dry_run else None
@@ -129,7 +129,7 @@ def _process_file(
         db.mark_tagged(file_path, game_name, content_hash)
 
     if youtube and config.youtube.auto_upload and not dry_run:
-        # Content-hash dedup (path-independent — survives renames)
+        # Content-hash dedup (path-independent; survives renames)
         if content_hash and db.get_youtube_id_by_hash(content_hash) is not None:
             bound.debug("skipped_upload", reason="already_uploaded")
             return tagged
@@ -137,7 +137,7 @@ def _process_file(
         if db.get_youtube_id(file_path) is not None:
             bound.debug("skipped_upload", reason="already_uploaded")
             return tagged
-        # Age gate — wait for the clip to be reviewed/renamed before uploading
+        # Age gate: wait for the clip to be reviewed/renamed before uploading
         first_seen = db.get_first_seen(file_path)
         if first_seen is not None:
             age_days = (datetime.now(UTC) - first_seen).days
@@ -183,11 +183,11 @@ def _process_file(
 @click.option("--dry-run", is_flag=True, help="Preview changes without modifying files")
 @click.pass_context
 def main(ctx: click.Context, config_path: Path, dry_run: bool) -> None:
-    """ReplayTagger — auto-tag NVIDIA game clips for Plex collections."""
+    """ReplayTagger: tag game clips by genre so Plex builds per-game collections."""
     ctx.ensure_object(dict)
     cfg = load_config(config_path)
     rt_logging.configure(cfg.logging.level, cfg.logging.format)
-    # Auth commands obtain credentials — skip validation so they can run before
+    # Auth commands obtain credentials; skip validation so they can run before
     # a token exists even when plex.enabled or youtube.enabled is already set.
     if ctx.invoked_subcommand not in ("plex-auth", "youtube-auth"):
         _validate_config(cfg)
@@ -314,7 +314,7 @@ def plex_auth(ctx: click.Context) -> None:
     token_file.parent.mkdir(parents=True, exist_ok=True)
     token_file.write_text(token)
     click.echo("\nAuthorization successful!")
-    click.echo(f"Token saved to {token_file} — no environment variable needed.")
+    click.echo(f"Token saved to {token_file}; no environment variable needed.")
     click.echo(f"To set it as an env var instead:\n\n  PLEX_TOKEN={token}\n")
 
 

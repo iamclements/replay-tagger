@@ -39,7 +39,7 @@ def _discord_payload(event: NotifyEvent, data: dict[str, Any]) -> dict[str, Any]
     return {
         "embeds": [
             {
-                "title": f"ReplayTagger — {_DISCORD_TITLES[event]}",
+                "title": f"ReplayTagger: {_DISCORD_TITLES[event]}",
                 "color": _DISCORD_COLORS[event],
                 "fields": fields,
             }

@@ -96,7 +96,7 @@ class StateDB:
         return row["youtube_id"] if row else None
 
     def get_youtube_id_by_hash(self, content_hash: str) -> str | None:
-        """Path-independent dedup — returns youtube_id if this content was already uploaded."""
+        """Path-independent dedup: returns youtube_id if this content was already uploaded."""
         with self._connect() as conn:
             row = conn.execute(
                 "SELECT youtube_id FROM processed_files"

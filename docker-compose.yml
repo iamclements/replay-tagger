@@ -1,10 +1,6 @@
 services:
   replaytagger:
     image: ghcr.io/iamclements/replay-tagger:latest
-    # Uncomment to build locally instead of pulling from GHCR (requires cloning the repo)
-    # build:
-    #   context: .
-    #   dockerfile: Dockerfile
     container_name: replaytagger
 
     volumes:
@@ -35,6 +31,10 @@ services:
       # Uncomment to delay uploads until clips have been in the folder for N days
       # (gives time to trim and rename before they appear on YouTube)
       # - YOUTUBE_UPLOAD_AFTER_DAYS=3
+      # Plex client identification (shown in Plex → Settings → Devices)
+      - PLEXAPI_HEADER_PRODUCT=ReplayTagger
+      - PLEXAPI_HEADER_DEVICE=ReplayTagger
+      - PLEXAPI_HEADER_DEVICE_NAME=ReplayTagger
       # Logging; use "text" for human-readable output during debugging
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LOG_FORMAT=${LOG_FORMAT:-json}

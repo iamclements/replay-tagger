@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "replaytagger"
-version = "2.0.0"
-description = "Automatically tag and organize NVIDIA Instant Replay clips for Plex collections"
+version = "2.2.0"
+description = "Tag game clips by genre so Plex builds per-game collections automatically"
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.11"
@@ -52,3 +52,8 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=replaytagger --cov-report=term-missing -q"
+filterwarnings = [
+    # pytest-cov leaves its .coverage SQLite file open on Python 3.13; surfaces
+    # as ResourceWarning during mock GC cleanup, not from our code
+    "ignore:unclosed database:ResourceWarning",
+]
