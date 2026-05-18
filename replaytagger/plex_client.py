@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 import warnings
 
 import requests
@@ -25,6 +26,12 @@ class PlexClient:
         try:
             session = requests.Session()
             session.verify = self._verify_ssl
+            session.headers.update({
+                "X-Plex-Product": "ReplayTagger",
+                "X-Plex-Device-Name": "ReplayTagger",
+                # Stable per-server identifier so Plex doesn't create a new device on every restart
+                "X-Plex-Client-Identifier": str(uuid.uuid5(uuid.NAMESPACE_URL, self._url)),
+            })
             if not self._verify_ssl:
                 log.warning("plex_ssl_verification_disabled", url=self._url)
                 warnings.filterwarnings("ignore", message="Unverified HTTPS request")
