@@ -176,6 +176,14 @@ docker compose logs -f
 
 ReplayTagger scans all existing clips first, tags any that haven't been tagged yet, then switches to watching for new files.
 
+**Verify your setup:**
+
+```bash
+docker compose run --rm replaytagger replaytagger --config /app/config.yaml doctor
+```
+
+All checks green means clips will be tagged and Plex collections will update automatically.
+
 ---
 
 ### Step 6 (Optional): Set up YouTube archiving
@@ -315,6 +323,13 @@ plex:
   library_name: "Gaming Clips"
   auto_scan: true
   auto_create_collections: true
+  verify_ssl: true                   # set false for self-signed certs; also set PLEX_VERIFY_SSL=false in .env
+
+# optional: remap clip folder names to game names for Plex collections
+# NVIDIA Instant Replay produces clean names; most users can omit this
+# game_name_map:
+#   "Apex Legends Season 20": "Apex Legends"
+#   "Call of Duty HQ": "Call of Duty: Warzone"
 
 youtube:
   enabled: false
@@ -362,6 +377,7 @@ replaytagger [--config PATH] [--dry-run] COMMAND
 Commands:
   run            Scan all clips once, tag untagged files, then exit
   watch          Watch for new clips and process them as they arrive
+  doctor         Run pre-flight checks: Plex connectivity, ffmpeg, paths, credentials
   plex-auth      Authorize Plex via PIN flow; saves token to data/plex_token
   youtube-auth   Authorize YouTube via device flow (URL + code, no browser needed)
   youtube-sync   Upload all tagged clips that have passed upload_after_days
@@ -400,7 +416,7 @@ To run auth commands, use your UI's console/exec feature or:
 docker exec -it replaytagger replaytagger --config /app/config.yaml plex-auth
 ```
 
-> **Note:** `plex-auth` requires an interactive terminal (TTY) for the PIN flow. If your container UI doesn't provide a console, exec via the CLI above is currently the only supported path.
+> **Note:** `plex-auth` launches a PIN-based browser flow and requires a TTY. The View XML method in [Step 4](#step-4-get-your-plex-token) works without a TTY and is the recommended approach for NAS/container UI setups.
 
 Pre-built images for `amd64` and `arm64` are published to GitHub Container Registry on every release. The `arm64` image runs natively on Raspberry Pi and most NAS SoCs.
 
@@ -449,6 +465,8 @@ replaytagger/
 Contributions are welcome. Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 Use the provided issue templates for [bug reports](.github/ISSUE_TEMPLATE/bug_report.md) and [feature requests](.github/ISSUE_TEMPLATE/feature_request.md).
+
+See [SECURITY.md](SECURITY.md) for the vulnerability disclosure policy and the list of sensitive files this project handles.
 
 ---
 

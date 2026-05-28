@@ -22,9 +22,9 @@ source .venv/bin/activate
    ```
 4. Update docs in the same PR as your code change. If your change affects a CLI command, config key, env var, or Docker behavior, update:
    - `README.md` - env var table, CLI reference, setup steps
-   - `CHANGELOG.md` - add an entry under `[Unreleased]`
    - `config.yaml.example` - any new or changed keys
    - `.env.example` - any new or changed env vars
+   - `CHANGELOG.md` is updated only in the release commit, not in individual PRs
 5. Commit using [Conventional Commits](https://www.conventionalcommits.org/):
    - `feat:` new feature
    - `fix:` bug fix
