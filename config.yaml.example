@@ -24,6 +24,17 @@ ffprobe_path: ffprobe
 # Seconds to wait after a file event before processing (lets Syncthing finish writing)
 debounce_seconds: 10
 
+# ── Game name overrides (optional) ────────────────────────────────────────────
+# Maps clip folder names to the game name written into the genre tag and used
+# for Plex collections. Only needed when your capture tool produces folder names
+# that differ from how you want the game to appear in Plex.
+# NVIDIA Instant Replay uses clean names (e.g. "Apex Legends") so most users
+# can omit this section entirely.
+#
+# game_name_map:
+#   "Apex Legends Season 20":  "Apex Legends"
+#   "Call of Duty HQ":         "Call of Duty: Warzone"
+
 # ── Plex integration ──────────────────────────────────────────────────────────
 plex:
   enabled: true

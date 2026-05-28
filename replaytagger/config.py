@@ -55,6 +55,7 @@ class AppConfig:
     ffmpeg_path: str = "ffmpeg"
     ffprobe_path: str = "ffprobe"
     debounce_seconds: int = 10
+    game_name_map: dict[str, str] = field(default_factory=dict)
     plex: PlexConfig = field(default_factory=PlexConfig)
     youtube: YouTubeConfig = field(default_factory=YouTubeConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
@@ -143,6 +144,7 @@ def load_config(config_path: Path) -> AppConfig:
         ffmpeg_path=data.get("ffmpeg_path", "ffmpeg"),
         ffprobe_path=data.get("ffprobe_path", "ffprobe"),
         debounce_seconds=data.get("debounce_seconds", 10),
+        game_name_map=data.get("game_name_map", {}),
         plex=plex,
         youtube=youtube,
         logging=LoggingConfig(level=log_level, format=log_format),

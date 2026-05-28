@@ -62,6 +62,10 @@ def _validate_config(config: AppConfig) -> None:
         sys.exit(1)
 
 
+def _resolve_game(folder_name: str, mapping: dict[str, str]) -> str:
+    return mapping.get(folder_name, folder_name)
+
+
 def _build_plex(config: AppConfig):  # type: ignore[no-untyped-def]
     if not config.plex.enabled:
         return None
@@ -110,7 +114,7 @@ def _process_file(
     dry_run: bool,
     notifier: NotificationClient | None = None,  # reserved for clip_uploaded
 ) -> bool:
-    game_name = file_path.parent.name
+    game_name = _resolve_game(file_path.parent.name, config.game_name_map)
     bound = log.bind(file=file_path.name, game=game_name)
 
     if db.is_tagged(file_path):
@@ -189,7 +193,7 @@ def main(ctx: click.Context, config_path: Path, dry_run: bool) -> None:
     rt_logging.configure(cfg.logging.level, cfg.logging.format)
     # Auth commands obtain credentials; skip validation so they can run before
     # a token exists even when plex.enabled or youtube.enabled is already set.
-    if ctx.invoked_subcommand not in ("plex-auth", "youtube-auth"):
+    if ctx.invoked_subcommand not in ("plex-auth", "youtube-auth", "doctor"):
         _validate_config(cfg)
     ctx.obj["config"] = cfg
     ctx.obj["dry_run"] = dry_run
@@ -234,7 +238,7 @@ def run(ctx: click.Context) -> None:
 
     # Ensure collections exist for every game in the clips directory
     if plex and config.plex.auto_create_collections:
-        for game in {f.parent.name for f in clips}:
+        for game in {_resolve_game(f.parent.name, config.game_name_map) for f in clips}:
             plex.ensure_collection(game)
 
     # Trigger a single Plex scan after all files are processed
@@ -283,7 +287,7 @@ def watch(ctx: click.Context) -> None:
 
                 notifier.notify(
                     NotifyEvent.CLIP_TAGGED,
-                    game=file_path.parent.name,
+                    game=_resolve_game(file_path.parent.name, config.game_name_map),
                     file=file_path.name,
                 )
         except Exception as exc:
@@ -446,3 +450,111 @@ def status(ctx: click.Context) -> None:
     stats = db.stats()
     click.echo(f"Tagged clips : {stats['total_tagged']}")
     click.echo(f"YT uploads   : {stats['total_uploaded']}")
+
+
+@main.command()
+@click.pass_context
+def doctor(ctx: click.Context) -> None:
+    """Check configuration, paths, and connectivity."""
+    import shutil
+
+    import structlog
+
+    # Route structlog to stderr so JSON log lines don't interleave with doctor output
+    structlog.configure(logger_factory=structlog.PrintLoggerFactory(sys.stderr))
+
+    config: AppConfig = ctx.obj["config"]
+    passed = True
+
+    def _line(status: str, label: str, detail: str = "") -> None:
+        colors = {"OK": "green", "FAIL": "red", "WARN": "yellow", "SKIP": "bright_black"}
+        styled = click.style(f"{status:<4}", fg=colors.get(status, "white"), bold=status == "FAIL")
+        click.echo(f"[{styled}] {label}" + (f": {detail}" if detail else ""))
+
+    def ok(label: str, detail: str = "") -> None:
+        _line("OK", label, detail)
+
+    def fail(label: str, detail: str = "") -> None:
+        nonlocal passed
+        passed = False
+        _line("FAIL", label, detail)
+
+    def warn(label: str, detail: str = "") -> None:
+        _line("WARN", label, detail)
+
+    def skip(label: str, detail: str = "") -> None:
+        _line("SKIP", label, detail)
+
+    # Clips directory
+    if config.clips_dir.exists():
+        clip_count = sum(
+            1
+            for f in config.clips_dir.rglob("*")
+            if f.is_file() and f.suffix.lower() in config.extensions
+        )
+        ok("clips_dir", f"{config.clips_dir} ({clip_count} clip(s))")
+    else:
+        fail("clips_dir", f"{config.clips_dir} not found")
+
+    # ffmpeg / ffprobe
+    for tool in (config.ffmpeg_path, config.ffprobe_path):
+        if shutil.which(tool):
+            ok(tool)
+        else:
+            fail(tool, "not found - install ffmpeg or set ffmpeg_path/ffprobe_path in config.yaml")
+
+    # Data directory writable
+    try:
+        config.data_dir.mkdir(parents=True, exist_ok=True)
+        probe = config.data_dir / ".doctor"
+        probe.write_text("ok")
+        probe.unlink()
+        ok("data_dir", str(config.data_dir))
+    except Exception as exc:
+        fail("data_dir", str(exc))
+
+    # Plex
+    if config.plex.enabled:
+        if not config.plex.token:
+            fail("plex_token", "not set - add PLEX_TOKEN to .env")
+        else:
+            ok("plex_token")
+            try:
+                from replaytagger.plex_client import PlexClient
+
+                plex = PlexClient(
+                    config.plex.url,
+                    config.plex.token,
+                    config.plex.library_name,
+                    config.plex.verify_ssl,
+                )
+                ok("plex_reachable", config.plex.url)
+                plex.list_collections()
+                ok("plex_library", config.plex.library_name)
+            except ValueError as exc:
+                fail("plex_library", str(exc))
+            except Exception as exc:
+                fail("plex_reachable", str(exc))
+    else:
+        skip("plex", "not enabled")
+
+    # YouTube
+    if config.youtube.enabled:
+        has_env = bool(
+            os.environ.get("YOUTUBE_CLIENT_ID") and os.environ.get("YOUTUBE_CLIENT_SECRET")
+        )
+        if has_env or config.youtube.credentials_file.exists():
+            ok("youtube_credentials")
+        else:
+            warn(
+                "youtube_credentials",
+                f"set YOUTUBE_CLIENT_ID/SECRET or provide {config.youtube.credentials_file}",
+            )
+    else:
+        skip("youtube", "not enabled")
+
+    # Game name map
+    if config.game_name_map:
+        ok("game_name_map", f"{len(config.game_name_map)} mapping(s) active")
+
+    sys.exit(0 if passed else 1)
