@@ -456,11 +456,12 @@ def status(ctx: click.Context) -> None:
 @click.pass_context
 def doctor(ctx: click.Context) -> None:
     """Check configuration, paths, and connectivity."""
-    import logging
     import shutil
 
-    # Suppress structlog/stdlib output so check lines aren't interleaved with JSON logs
-    logging.disable(logging.CRITICAL)
+    import structlog
+
+    # Route structlog to stderr so JSON log lines don't interleave with doctor output
+    structlog.configure(logger_factory=structlog.PrintLoggerFactory(sys.stderr))
 
     config: AppConfig = ctx.obj["config"]
     passed = True
