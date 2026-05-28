@@ -1,32 +1,42 @@
 ---
 name: Bug report
-about: Create a report to help us improve
+about: Something is broken or behaving unexpectedly
 title: '[BUG] '
 labels: 'bug'
 assignees: ''
-
 ---
 
 **Describe the bug**
-A clear and concise description of what the bug is.
+A clear description of what went wrong.
 
-**To Reproduce**
-Steps to reproduce the behavior:
-1. Go to '...'
-2. Click on '....'
-3. Scroll down to '....'
-4. See error
+**To reproduce**
+Steps to reproduce:
+1. ...
+2. ...
 
 **Expected behavior**
-A clear and concise description of what you expected to happen.
+What should have happened.
 
-**Screenshots**
-If applicable, add screenshots to help explain your problem.
+**Logs**
+Paste the relevant log output. Set `LOG_FORMAT=text` in `.env` for readable output, or paste the JSON lines as-is.
 
-**Environment (please complete the following information):**
- - OS: [e.g. Windows 10, macOS 12, Ubuntu 22.04]
- - PowerShell Version: [e.g. 5.1, 7.2]
- - FFmpeg Version: [e.g. 5.1.2]
+```
+paste logs here
+```
+
+**Environment**
+- Deployment: Docker / bare Python
+- OS / platform: e.g. Unraid 6.12, Synology DSM 7, Ubuntu 22.04
+- ReplayTagger version: e.g. v2.2.0 (check `docker inspect` image tag or `replaytagger --version`)
+- Plex Media Server version:
+- ffmpeg version (`ffmpeg -version`):
+
+**Config**
+Paste your `config.yaml` (redact any tokens):
+
+```yaml
+paste config here
+```
 
 **Additional context**
-Add any other context about the problem here.
+Anything else that might be relevant.

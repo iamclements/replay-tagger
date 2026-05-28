@@ -20,13 +20,30 @@ source .venv/bin/activate
    make lint   # ruff + mypy
    make test   # pytest
    ```
-4. Commit using [Conventional Commits](https://www.conventionalcommits.org/):
+4. Update docs in the same PR as your code change. If your change affects a CLI command, config key, env var, or Docker behavior, update:
+   - `README.md` - env var table, CLI reference, setup steps
+   - `CHANGELOG.md` - add an entry under `[Unreleased]`
+   - `config.yaml.example` - any new or changed keys
+   - `.env.example` - any new or changed env vars
+5. Commit using [Conventional Commits](https://www.conventionalcommits.org/):
    - `feat:` new feature
    - `fix:` bug fix
    - `ci:` CI/CD changes
    - `docs:` documentation only
    - `chore:` tooling, deps, or config
-5. Open a pull request against `main`
+6. Open a pull request against `main`
+
+## Testing with Docker
+
+To test against the full container stack locally:
+
+```bash
+make docker-build                                  # builds replaytagger:dev
+docker compose run --rm replaytagger doctor        # pre-flight check
+docker compose run --rm replaytagger run --dry-run # scan without modifying files
+```
+
+Set `image: replaytagger:dev` in `docker-compose.yml` while testing; revert to the GHCR image before committing.
 
 ## Pull Request Format
 
