@@ -513,7 +513,7 @@ def doctor(ctx: click.Context) -> None:
     # Silence all structlog output during doctor - it has its own click.echo formatting.
     # cache_logger_on_first_use=False ensures the new wrapper takes effect immediately.
     structlog.configure(
-        wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL + 1),
+        wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL),
         cache_logger_on_first_use=False,
     )
 
