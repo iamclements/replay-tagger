@@ -59,7 +59,9 @@ class Tagger:
         except (json.JSONDecodeError, AttributeError):
             return None
 
-    def tag(self, file_path: Path, game_name: str, dry_run: bool = False) -> bool:
+    def tag(
+        self, file_path: Path, game_name: str, dry_run: bool = False, force: bool = False
+    ) -> bool:
         """
         Writes game_name into the genre tag.
 
@@ -68,7 +70,7 @@ class Tagger:
         """
         bound = log.bind(file=file_path.name, game=game_name)
 
-        if self.get_genre(file_path) is not None:
+        if not force and self.get_genre(file_path) is not None:
             bound.debug("skipped", reason="genre_already_set")
             return False
 

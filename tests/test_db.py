@@ -60,3 +60,25 @@ def test_stats_counts_correctly(db: StateDB, tmp_path: Path) -> None:
     stats = db.stats()
     assert stats["total_tagged"] == 3
     assert stats["total_uploaded"] == 1
+
+
+def test_last_tagged_returns_none_when_empty(db: StateDB) -> None:
+    assert db.last_tagged() is None
+
+
+def test_last_tagged_returns_most_recent(db: StateDB, tmp_path: Path) -> None:
+    for i in range(3):
+        p = tmp_path / f"clip{i}.mp4"
+        p.write_bytes(b"data" * (i + 1))
+        db.mark_tagged(p, f"Game{i}")
+
+    last = db.last_tagged()
+    assert last is not None
+    assert last["game_name"] == "Game2"
+
+
+def test_clear_tagged_removes_record(db: StateDB, clip: Path) -> None:
+    db.mark_tagged(clip, "Apex Legends")
+    assert db.is_tagged(clip) is True
+    db.clear_tagged(clip)
+    assert db.is_tagged(clip) is False

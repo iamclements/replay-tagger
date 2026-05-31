@@ -80,3 +80,32 @@ def test_tagger_raises_if_ffmpeg_missing() -> None:
     with patch("shutil.which", return_value=None):
         with pytest.raises(RuntimeError, match="ffmpeg not found"):
             Tagger()
+
+
+def test_tag_force_overwrites_existing_genre(tagger: Tagger, tmp_path: Path) -> None:
+    clip = tmp_path / "Apex Legends" / "clip.mp4"
+    clip.parent.mkdir()
+    clip.write_bytes(b"fake")
+
+    succeeded = MagicMock(returncode=0, stderr="")
+
+    with patch.object(tagger, "get_genre", return_value="Old Game"):
+        with patch("subprocess.run", return_value=succeeded):
+            with patch("replaytagger.tagger.Path.replace"):
+                with patch("os.utime"):
+                    # tmp file needs to appear to exist for tag() to proceed
+                    with patch("pathlib.Path.exists", return_value=True):
+                        result = tagger.tag(clip, "Apex Legends", force=True)
+
+    assert result is True
+
+
+def test_tag_skips_existing_genre_without_force(tagger: Tagger, tmp_path: Path) -> None:
+    clip = tmp_path / "Apex Legends" / "clip.mp4"
+    clip.parent.mkdir()
+    clip.write_bytes(b"fake")
+
+    with patch.object(tagger, "get_genre", return_value="Apex Legends"):
+        result = tagger.tag(clip, "Apex Legends", force=False)
+
+    assert result is False

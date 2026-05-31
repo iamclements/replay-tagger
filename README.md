@@ -377,17 +377,24 @@ replaytagger [--config PATH] [--dry-run] COMMAND
 Commands:
   run            Scan all clips once, tag untagged files, then exit
   watch          Watch for new clips and process them as they arrive
+  retag FILE     Force-retag a single clip, overriding any existing genre tag
   doctor         Run pre-flight checks: Plex connectivity, ffmpeg, paths, credentials
   plex-auth      Authorize Plex via PIN flow; saves token to data/plex_token
   youtube-auth   Authorize YouTube via device flow (URL + code, no browser needed)
   youtube-sync   Upload all tagged clips that have passed upload_after_days
   upload FILE    Upload a single clip to YouTube
-  status         Show tagging and upload counts from the state database
+  status         Show tagging and upload counts and last activity
 ```
 
 ```bash
 # Preview what would be tagged without changing anything
 replaytagger --dry-run run
+
+# Retag everything (e.g. after updating game_name_map)
+replaytagger run --force
+
+# Force-retag a single clip with an optional name override
+replaytagger retag "clips/Apex Legends/clip1.mp4" --game "Apex Legends"
 
 # Upload a specific clip as unlisted
 replaytagger upload "clips/Apex Legends/clip1.mp4" --privacy unlisted

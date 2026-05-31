@@ -75,9 +75,18 @@ def _build_plex(config: AppConfig):  # type: ignore[no-untyped-def]
     from replaytagger.plex_client import PlexClient
 
     try:
-        return PlexClient(
+        client = PlexClient(
             config.plex.url, config.plex.token, config.plex.library_name, config.plex.verify_ssl
         )
+        client.list_collections()  # validate library name exists at startup
+        return client
+    except ValueError as exc:
+        log.error(
+            "plex_library_not_found",
+            reason=str(exc),
+            hint="Check library_name in config.yaml matches your Plex library exactly",
+        )
+        sys.exit(1)
     except Exception:
         log.warning(
             "plex_degraded",
@@ -112,16 +121,17 @@ def _process_file(
     plex: PlexClient | None,
     youtube: YouTubeClient | None,
     dry_run: bool,
-    notifier: NotificationClient | None = None,  # reserved for clip_uploaded
+    notifier: NotificationClient | None = None,
+    force: bool = False,
 ) -> bool:
     game_name = _resolve_game(file_path.parent.name, config.game_name_map)
     bound = log.bind(file=file_path.name, game=game_name)
 
-    if db.is_tagged(file_path):
+    if not force and db.is_tagged(file_path):
         bound.debug("skipped", reason="already_tagged")
         return False
 
-    tagged = tagger.tag(file_path, game_name, dry_run=dry_run)
+    tagged = tagger.tag(file_path, game_name, dry_run=dry_run, force=force)
 
     if not tagged and not dry_run and tagger.get_genre(file_path) == game_name:
         # Genre was written in a prior run but not recorded in DB; backfill it
@@ -193,15 +203,16 @@ def main(ctx: click.Context, config_path: Path, dry_run: bool) -> None:
     rt_logging.configure(cfg.logging.level, cfg.logging.format)
     # Auth commands obtain credentials; skip validation so they can run before
     # a token exists even when plex.enabled or youtube.enabled is already set.
-    if ctx.invoked_subcommand not in ("plex-auth", "youtube-auth", "doctor"):
+    if ctx.invoked_subcommand not in ("plex-auth", "youtube-auth", "doctor", "retag"):
         _validate_config(cfg)
     ctx.obj["config"] = cfg
     ctx.obj["dry_run"] = dry_run
 
 
 @main.command()
+@click.option("--force", is_flag=True, help="Retag all clips even if already tagged")
 @click.pass_context
-def run(ctx: click.Context) -> None:
+def run(ctx: click.Context, force: bool) -> None:
     """Scan all clips once, tag untagged files, then exit."""
     config: AppConfig = ctx.obj["config"]
     dry_run: bool = ctx.obj["dry_run"]
@@ -222,12 +233,14 @@ def run(ctx: click.Context) -> None:
         if f.is_file() and f.suffix.lower() in config.extensions
     ]
 
-    log.info("scan_started", total=len(clips), dry_run=dry_run)
+    log.info("scan_started", total=len(clips), dry_run=dry_run, force=force)
 
     newly_tagged = 0
     for clip in clips:
         try:
-            if _process_file(clip, config, tagger, db, plex, youtube, dry_run, notifier):
+            if _process_file(
+                clip, config, tagger, db, plex, youtube, dry_run, notifier, force=force
+            ):
                 newly_tagged += 1
         except Exception as exc:
             log.error("file_error", file=clip.name, error=str(exc))
@@ -275,7 +288,11 @@ def watch(ctx: click.Context) -> None:
 
     # Process existing untagged files before entering watch mode
     log.info("processing_existing_clips")
-    run.invoke(ctx)
+    ctx.invoke(run, force=False)
+
+    if dry_run:
+        log.info("dry_run_complete", message="watch loop skipped in dry-run mode")
+        return
 
     def on_new_clip(file_path: Path) -> None:
         try:
@@ -450,26 +467,65 @@ def status(ctx: click.Context) -> None:
     stats = db.stats()
     click.echo(f"Tagged clips : {stats['total_tagged']}")
     click.echo(f"YT uploads   : {stats['total_uploaded']}")
+    last = db.last_tagged()
+    if last:
+        name = Path(last["file_path"]).name
+        click.echo(f"Last tagged  : {name} ({last['game_name']}) at {last['tagged_at']}")
+
+
+@main.command()
+@click.argument("file", type=click.Path(exists=True, dir_okay=False, path_type=Path))
+@click.option("--game", "game_name", default=None, help="Game name override (default: folder name)")
+@click.pass_context
+def retag(ctx: click.Context, file: Path, game_name: str | None) -> None:
+    """Force-retag a single clip, overriding any existing genre tag."""
+    config: AppConfig = ctx.obj["config"]
+    dry_run: bool = ctx.obj["dry_run"]
+
+    resolved_game = game_name or _resolve_game(file.parent.name, config.game_name_map)
+    tagger = Tagger(config.ffmpeg_path, config.ffprobe_path)
+    db = StateDB(config.data_dir / "state.db")
+
+    tagged = tagger.tag(file, resolved_game, dry_run=dry_run, force=True)
+
+    if dry_run:
+        click.echo(f"Would retag: {file.name} -> {resolved_game}")
+        return
+
+    if tagged:
+        content_hash = compute_content_hash(file)
+        db.mark_tagged(file, resolved_game, content_hash)
+        click.echo(f"Retagged: {file.name} -> {resolved_game}")
+    else:
+        click.echo(f"Retag failed: {file.name}", err=True)
+        sys.exit(1)
 
 
 @main.command()
 @click.pass_context
 def doctor(ctx: click.Context) -> None:
     """Check configuration, paths, and connectivity."""
+    import logging
     import shutil
 
     import structlog
 
-    # Route structlog to stderr so JSON log lines don't interleave with doctor output
-    structlog.configure(logger_factory=structlog.PrintLoggerFactory(sys.stderr))
+    # Silence all structlog output during doctor - it has its own click.echo formatting.
+    # cache_logger_on_first_use=False ensures the new wrapper takes effect immediately.
+    structlog.configure(
+        wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL),
+        cache_logger_on_first_use=False,
+    )
 
     config: AppConfig = ctx.obj["config"]
     passed = True
+    counts: dict[str, int] = {"OK": 0, "FAIL": 0, "WARN": 0, "SKIP": 0}
 
     def _line(status: str, label: str, detail: str = "") -> None:
         colors = {"OK": "green", "FAIL": "red", "WARN": "yellow", "SKIP": "bright_black"}
         styled = click.style(f"{status:<4}", fg=colors.get(status, "white"), bold=status == "FAIL")
         click.echo(f"[{styled}] {label}" + (f": {detail}" if detail else ""))
+        counts[status] = counts.get(status, 0) + 1
 
     def ok(label: str, detail: str = "") -> None:
         _line("OK", label, detail)
@@ -519,6 +575,17 @@ def doctor(ctx: click.Context) -> None:
             fail("plex_token", "not set - add PLEX_TOKEN to .env")
         else:
             ok("plex_token")
+            # Check plex_token file permissions if token was loaded from file
+            token_file = config.data_dir / "plex_token"
+            if token_file.exists():
+                mode = token_file.stat().st_mode & 0o777
+                if mode & 0o044:  # group-read or other-read
+                    warn(
+                        "plex_token_perms",
+                        f"{token_file} mode {oct(mode)[-3:]} - run: chmod 600 {token_file}",
+                    )
+                else:
+                    ok("plex_token_perms", f"{token_file} permissions ok")
             try:
                 from replaytagger.plex_client import PlexClient
 
@@ -556,5 +623,15 @@ def doctor(ctx: click.Context) -> None:
     # Game name map
     if config.game_name_map:
         ok("game_name_map", f"{len(config.game_name_map)} mapping(s) active")
+
+    total = counts["OK"] + counts["FAIL"] + counts["WARN"] + counts["SKIP"]
+    summary_parts = [f"{counts['OK']} passed"]
+    if counts["FAIL"]:
+        summary_parts.append(click.style(f"{counts['FAIL']} failed", fg="red", bold=True))
+    if counts["WARN"]:
+        summary_parts.append(click.style(f"{counts['WARN']} warned", fg="yellow"))
+    if counts["SKIP"]:
+        summary_parts.append(f"{counts['SKIP']} skipped")
+    click.echo(f"\n{', '.join(summary_parts)} ({total} checks)")
 
     sys.exit(0 if passed else 1)
