@@ -39,6 +39,16 @@ Optional: a Google account for YouTube archiving.
 
 ---
 
+> **Already have Plex and Docker running?** Skip the tutorial:
+> ```bash
+> curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/docker-compose.yml
+> curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/.env.example && mv .env.example .env
+> # Edit .env: set CLIPS_DIR, PLEX_URL, PLEX_TOKEN, PLEX_LIBRARY_NAME
+> docker compose up -d && docker compose run --rm replaytagger doctor
+> ```
+
+---
+
 ## How it works
 
 Your capture software organizes clips into per-game folders (NVIDIA GeForce Experience does this automatically):
@@ -143,7 +153,7 @@ plex:
   auto_create_collections: true
 ```
 
-> `data_dir` defaults to `data/`, which maps to `/app/data` in the container; leave it as-is. It holds the SQLite state database, Plex token, and YouTube token.
+> `data_dir` defaults to `data/`, which maps to `/app/data` in the container; leave it as-is. It holds the SQLite state database, Plex token, and YouTube token. The `data/` directory is the only state you need to back up; the database rebuilds itself from existing genre tags if lost, but re-tagging is slow on large libraries.
 
 See [config.yaml.example](config.yaml.example) for all options with inline documentation.
 
@@ -179,7 +189,7 @@ ReplayTagger scans all existing clips first, tags any that haven't been tagged y
 **Verify your setup:**
 
 ```bash
-docker compose run --rm replaytagger replaytagger --config /app/config.yaml doctor
+docker compose run --rm replaytagger doctor
 ```
 
 All checks green means clips will be tagged and Plex collections will update automatically.
@@ -206,8 +216,7 @@ Free permanent archival storage. ReplayTagger uploads the source file without pr
 #### Authorize
 
 ```bash
-# The first "replaytagger" is the Docker service name; the second is the CLI command
-docker compose run --rm replaytagger replaytagger --config /app/config.yaml youtube-auth
+docker compose run --rm replaytagger youtube-auth
 ```
 
 Enter the displayed code at `google.com/device`. Token saved to `data/youtube_token.json` (one-time setup).
@@ -274,7 +283,7 @@ docker compose logs -f replaytagger
 Check that the left side of the `/clips` volume in `docker-compose.yml` points to the correct host directory and that it exists. `CLIPS_DIR` is always `/clips` inside the container with the default compose file; only the host-side path changes.
 
 **Plex collections aren't appearing**
-ReplayTagger exits at startup with `plex_library_not_found` if the name doesn't match. Run `docker compose run --rm replaytagger doctor` to confirm Plex connectivity and the exact library name. Also verify "Automatically create collections by genre" is enabled in the library's Advanced settings.
+ReplayTagger exits at startup with `plex_library_not_found` if the name doesn't match. Run `docker compose run --rm replaytagger doctor` to confirm Plex connectivity and the exact library name. Also verify "Automatically create collections by genre" is enabled in the library's Advanced settings. If you rename the Plex library, update `PLEX_LIBRARY_NAME` in `.env` (or `library_name` in `config.yaml`) to match and restart; old collections in Plex are unaffected and stay until you delete them manually.
 
 **Plex auth fails or token is rejected**
 Get a fresh token from Plex Web (View XML method in Step 4) and update `PLEX_TOKEN` in `.env`. Tokens don't expire but are invalidated if you change your Plex password or revoke devices from your Plex account dashboard.
@@ -284,7 +293,7 @@ ReplayTagger still tags files and updates the database if Plex is unreachable; i
 
 **Check how many clips have been tagged**
 ```bash
-docker exec replaytagger replaytagger --config /app/config.yaml status
+docker exec replaytagger replaytagger status
 ```
 
 **Logs are hard to read**
@@ -420,7 +429,7 @@ Tools like Synology Container Manager, Unraid, TrueNAS SCALE, and similar UIs ca
 To run auth commands, use your UI's console/exec feature or:
 
 ```bash
-docker exec -it replaytagger replaytagger --config /app/config.yaml plex-auth
+docker exec -it replaytagger replaytagger plex-auth
 ```
 
 > **Note:** `plex-auth` launches a PIN-based browser flow and requires a TTY. The View XML method in [Step 4](#step-4-get-your-plex-token) works without a TTY and is the recommended approach for NAS/container UI setups.
