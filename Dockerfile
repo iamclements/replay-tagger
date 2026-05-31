@@ -43,7 +43,7 @@ RUN chmod +x /entrypoint.sh
 VOLUME ["/clips", "/app/data"]
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-    CMD python3 -c "import os,time; f='/app/data/.health'; exit(0 if os.path.exists(f) and time.time()-os.path.getmtime(f)<120 else 1)"
+    CMD replaytagger --config /app/config.yaml health
 
 ENTRYPOINT ["/entrypoint.sh", "replaytagger", "--config", "/app/config.yaml"]
 CMD ["watch"]

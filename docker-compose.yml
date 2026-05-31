@@ -45,7 +45,7 @@ services:
     # Watcher writes /app/data/.health every 30s; container managers (Portainer,
     # Synology, Unraid) will show healthy/unhealthy automatically
     healthcheck:
-      test: ["CMD", "python3", "-c", "import os,time; f='/app/data/.health'; exit(0 if os.path.exists(f) and time.time()-os.path.getmtime(f)<120 else 1)"]
+      test: ["CMD", "replaytagger", "--config", "/app/config.yaml", "health"]
       interval: 30s
       timeout: 10s
       start_period: 60s
