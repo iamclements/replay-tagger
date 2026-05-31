@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import sys
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -482,6 +483,17 @@ def status(ctx: click.Context) -> None:
     if last:
         name = Path(last["file_path"]).name
         click.echo(f"Last tagged  : {name} ({last['game_name']}) at {last['tagged_at']}")
+
+
+@main.command()
+@click.pass_context
+def health(ctx: click.Context) -> None:
+    """Exit 0 if the watcher heartbeat is fresh; exit 1 otherwise (used by HEALTHCHECK)."""
+    config: AppConfig = ctx.obj["config"]
+    health_file = config.data_dir / ".health"
+    if health_file.exists() and time.time() - health_file.stat().st_mtime < 120:
+        sys.exit(0)
+    sys.exit(1)
 
 
 @main.command()

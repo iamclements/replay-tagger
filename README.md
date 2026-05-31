@@ -391,6 +391,7 @@ Commands:
   watch          Watch for new clips and process them as they arrive
   retag FILE     Force-retag a single clip, overriding any existing genre tag
   doctor         Run pre-flight checks: Plex connectivity, ffmpeg, paths, credentials
+  health         Exit 0 if watcher heartbeat is fresh; exit 1 otherwise (used by HEALTHCHECK)
   plex-auth      Authorize Plex via PIN flow; saves token to data/plex_token
   youtube-auth   Authorize YouTube via device flow (URL + code, no browser needed)
   youtube-sync   Upload all tagged clips that have passed upload_after_days
