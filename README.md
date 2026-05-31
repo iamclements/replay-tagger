@@ -88,7 +88,7 @@ Note the library name; it goes into `config.yaml` in Step 3.
 
 > **Tip:** if Plex is matching your clips against its movie database and overwriting the genre tag, go to the library's **Advanced** settings and switch the agent to **Personal Media**. ReplayTagger writes genre tags directly into the file (no online matching needed).
 
-> **If the library name in config.yaml doesn't match exactly, ReplayTagger will start but Plex scans and collection creation will silently do nothing.** Check the logs if clips aren't appearing.
+> **If the library name in config.yaml doesn't match exactly, ReplayTagger will exit at startup with a `plex_library_not_found` error.** Run `doctor` to verify connectivity and confirm the library name before starting the watcher.
 
 ---
 
@@ -274,7 +274,7 @@ docker compose logs -f replaytagger
 Check that the left side of the `/clips` volume in `docker-compose.yml` points to the correct host directory and that it exists. `CLIPS_DIR` is always `/clips` inside the container with the default compose file; only the host-side path changes.
 
 **Plex collections aren't appearing**
-Confirm the `library_name` in `config.yaml` matches your Plex library name exactly (case-sensitive). Also verify "Automatically create collections by genre" is enabled in the library's Advanced settings.
+ReplayTagger exits at startup with `plex_library_not_found` if the name doesn't match. Run `docker compose run --rm replaytagger doctor` to confirm Plex connectivity and the exact library name. Also verify "Automatically create collections by genre" is enabled in the library's Advanced settings.
 
 **Plex auth fails or token is rejected**
 Get a fresh token from Plex Web (View XML method in Step 4) and update `PLEX_TOKEN` in `.env`. Tokens don't expire but are invalidated if you change your Plex password or revoke devices from your Plex account dashboard.
