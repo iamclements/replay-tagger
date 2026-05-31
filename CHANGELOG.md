@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-05-31
+
+### Added
+- `replaytagger health` subcommand: exits 0 if the watcher heartbeat is fresh (less than 120 s old), exits 1 otherwise; replaces the inline `python3 -c` one-liner in the Docker `HEALTHCHECK`
+- `config.yaml` is now optional; every setting is available as an environment variable: `PLEX_ENABLED`, `PLEX_LIBRARY_NAME`, `PLEX_AUTO_SCAN`, `PLEX_AUTO_COLLECTIONS`, `DEBOUNCE_SECONDS`
+- Doctor PUID/PGID mismatch check: warns when `clips_dir` is owned by a different UID than the running process and prints the correct `PUID` value to set in `.env`
+- Doctor clips_dir write probe: verifies the clips directory is writable, not just present
+- 11 CLI tests covering `doctor`, `run`, `retag`, `status`, and `health` commands
+
+### Fixed
+- `game_name_map` was not applied in `youtube-sync` and `upload` commands; clips now use the mapped game name in YouTube titles and the state database
+- Content hash no longer computed for files skipped by the already-tagged check
+
+### Changed
+- `config.yaml` volume mount in `docker-compose.yml` is commented out by default; Docker no longer silently creates it as a directory when the file does not exist on the host
+- `plex_token_missing` warning now includes the exact `plex-auth` command as an actionable hint
+- Docker `HEALTHCHECK` uses `replaytagger health` instead of an inline Python one-liner
+
 ## [2.2.0] - 2026-05-17
 
 ### Added
