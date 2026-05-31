@@ -70,7 +70,10 @@ def _build_plex(config: AppConfig):  # type: ignore[no-untyped-def]
     if not config.plex.enabled:
         return None
     if not config.plex.token:
-        log.warning("plex_disabled", reason="PLEX_TOKEN not set")
+        log.warning(
+            "plex_token_missing",
+            hint=("Set PLEX_TOKEN in .env, or run: docker compose run --rm replaytagger plex-auth"),
+        )
         return None
     from replaytagger.plex_client import PlexClient
 
@@ -543,7 +546,8 @@ def doctor(ctx: click.Context) -> None:
         _line("SKIP", label, detail)
 
     # Clips directory
-    if config.clips_dir.exists():
+    clips_dir_exists = config.clips_dir.exists()
+    if clips_dir_exists:
         clip_count = sum(
             1
             for f in config.clips_dir.rglob("*")
@@ -556,6 +560,16 @@ def doctor(ctx: click.Context) -> None:
             ok("clips_dir", f"{config.clips_dir} ({clip_count} clip(s), writable)")
         except Exception as exc:
             warn("clips_dir_write", f"exists but not writable: {exc}")
+        clips_stat = config.clips_dir.stat()
+        current_uid = os.getuid()
+        if clips_stat.st_uid != current_uid:
+            warn(
+                "puid_mismatch",
+                f"clips_dir owned by uid={clips_stat.st_uid}, running as uid={current_uid};"
+                f" set PUID={clips_stat.st_uid} in .env",
+            )
+        else:
+            ok("puid", f"uid={current_uid} matches clips_dir owner")
     else:
         fail("clips_dir", f"{config.clips_dir} not found")
 
