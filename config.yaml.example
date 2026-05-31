@@ -1,5 +1,9 @@
-# ReplayTagger configuration
-# Copy this file to config.yaml and adjust to your setup.
+# ReplayTagger configuration - OPTIONAL
+# This file is only needed for game_name_map and notification webhooks.
+# All other settings can be configured via environment variables in .env.
+# See .env.example for the full list of supported env vars.
+#
+# If you don't need game_name_map or webhooks, you can skip this file entirely.
 # Secrets (PLEX_TOKEN, YouTube credentials) go in .env — not here.
 
 # Directory containing your game clips, organized in sub-folders by game name.

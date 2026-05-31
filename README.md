@@ -94,11 +94,11 @@ NAS and GUI users (Synology, Unraid, Portainer): download the file and skip to [
 4. Point it at the folder where clips will land
 5. **Advanced** tab → **"Automatically create collections"** → **"by Genre"**
 
-Note the library name; it goes into `config.yaml` in Step 3.
+Note the library name; it goes into `PLEX_LIBRARY_NAME` in `.env` in Step 3.
 
 > **Tip:** if Plex is matching your clips against its movie database and overwriting the genre tag, go to the library's **Advanced** settings and switch the agent to **Personal Media**. ReplayTagger writes genre tags directly into the file (no online matching needed).
 
-> **If the library name in config.yaml doesn't match exactly, ReplayTagger will exit at startup with a `plex_library_not_found` error.** Run `doctor` to verify connectivity and confirm the library name before starting the watcher.
+> **If `PLEX_LIBRARY_NAME` doesn't match exactly, ReplayTagger will exit at startup with a `plex_library_not_found` error.** Run `docker compose run --rm replaytagger doctor` to verify connectivity and confirm the library name before starting the watcher.
 
 ---
 
@@ -124,33 +124,33 @@ Alternatives:
 
 ### Step 3: Configure
 
-Download [config.yaml.example](config.yaml.example) as `config.yaml` and [.env.example](.env.example) as `.env`, both next to your `docker-compose.yml`:
+Download [.env.example](.env.example) as `.env` next to your `docker-compose.yml`:
 
 ```bash
-curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/config.yaml.example
-mv config.yaml.example config.yaml
-
 curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/.env.example
 mv .env.example .env
 ```
 
-**`.env`**: set your clips path and Plex URL:
+Edit `.env` and set at minimum:
 
 ```bash
-CLIPS_DIR=/clips               # always /clips when using the default compose file
+CLIPS_DIR=/path/to/your/clips  # host-side path; /clips inside the container
 PLEX_URL=http://192.168.1.100:32400
+PLEX_ENABLED=true
+PLEX_LIBRARY_NAME=Gaming Clips  # must match the library name from Step 1 exactly
+PLEX_TOKEN=xxxxxxxxxxxxxxxxxxxx  # see Step 4
 ```
 
-> `CLIPS_DIR` is the path *inside the container*, always `/clips` with the default compose file. Common host-side paths: Synology `/volume1/clips`, Unraid `/mnt/user/clips`, bare Linux `/mnt/clips`. Only the left side of the volume mount changes; the right side stays `/clips`.
+> `CLIPS_DIR` is the host-side path to your clips folder. Common examples: Synology `/volume1/clips`, Unraid `/mnt/user/clips`, bare Linux `/mnt/clips`.
 
-**`config.yaml`**: enable Plex and set the library name:
+> `data_dir` defaults to `./data` next to `docker-compose.yml`, mapping to `/app/data` in the container. It holds the SQLite state database, Plex token, and YouTube token. The `data/` directory is the only state you need to back up; the database rebuilds itself from existing genre tags if lost, but re-tagging is slow on large libraries.
 
-```yaml
-plex:
-  enabled: true
-  library_name: "Gaming Clips"   # must match exactly what you created in Step 1
-  auto_scan: true
-  auto_create_collections: true
+**config.yaml is optional.** You only need it for `game_name_map` (renaming clip folders to game names) and notification webhooks. If you need either, download the example:
+
+```bash
+curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/config.yaml.example
+mv config.yaml.example config.yaml
+# Then uncomment the config.yaml volume mount in docker-compose.yml
 ```
 
 > `data_dir` defaults to `data/`, which maps to `/app/data` in the container; leave it as-is. It holds the SQLite state database, Plex token, and YouTube token. The `data/` directory is the only state you need to back up; the database rebuilds itself from existing genre tags if lost, but re-tagging is slow on large libraries.
@@ -173,11 +173,9 @@ Plex tokens don't expire and grant full access to your account; treat this value
 
 ---
 
-### Step 5: Set up volumes and start
+### Step 5: Start
 
-Copy [docker-compose.yml](docker-compose.yml) from the repo to your server. Edit the **left side** of each volume mount and set `PUID`/`PGID` to match the owner of your clips folder (run `id` on the host to find the right values).
-
-> `CLIPS_DIR` is always `/clips` inside the container; only the host-side path (left of the colon) changes.
+Set `PUID`/`PGID` in `.env` to match the owner of your clips folder (run `id` on the host to find the right values). Then start the container:
 
 ```bash
 docker compose up -d
@@ -356,16 +354,21 @@ youtube:
 
 ### Environment variables
 
-Secrets always go in `.env`, never in `config.yaml`:
+All settings can be configured via `.env`. Secrets must use env vars and never go in `config.yaml`:
 
 | Variable | Description |
 |----------|-------------|
 | `PUID` | UID to run as; match to the owner of your clips folder (default: `1000`) |
 | `PGID` | GID to run as; match to the owner of your clips folder (default: `1000`) |
-| `CLIPS_DIR` | Path to the clips folder on your server |
+| `CLIPS_DIR` | Host-side path to your game clips folder |
+| `PLEX_ENABLED` | `true` to enable Plex integration (default: `false`) |
 | `PLEX_URL` | Your Plex server URL |
 | `PLEX_TOKEN` | Plex token (alternative to running `plex-auth`) |
+| `PLEX_LIBRARY_NAME` | Name of your game clips library in Plex (case-sensitive) |
+| `PLEX_AUTO_SCAN` | `true` to trigger a Plex scan after tagging (default: `true`) |
+| `PLEX_AUTO_COLLECTIONS` | `true` to create smart collections per game (default: `true`) |
 | `PLEX_VERIFY_SSL` | Set to `false` if Plex uses a self-signed cert (default: `true`) |
+| `DEBOUNCE_SECONDS` | Seconds to wait after a file event before processing (default: `10`) |
 | `YOUTUBE_CLIENT_ID` | GCP OAuth client ID |
 | `YOUTUBE_CLIENT_SECRET` | GCP OAuth client secret |
 | `YOUTUBE_ENABLED` | `true` or `false`; overrides config.yaml |
