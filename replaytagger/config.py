@@ -89,13 +89,21 @@ def load_config(config_path: Path) -> AppConfig:
     log_level = os.environ.get("LOG_LEVEL", logging_data.get("level", "INFO"))
     log_format = os.environ.get("LOG_FORMAT", logging_data.get("format", "json"))
 
+    def _env_bool(env_key: str, config_val: bool) -> bool:
+        v = os.environ.get(env_key, "").lower()
+        return True if v == "true" else False if v == "false" else config_val
+
     plex = PlexConfig(
-        enabled=plex_data.get("enabled", False),
+        enabled=_env_bool("PLEX_ENABLED", plex_data.get("enabled", False)),
         url=plex_url,
         token=plex_token,
-        library_name=plex_data.get("library_name", "Game Clips"),
-        auto_scan=plex_data.get("auto_scan", True),
-        auto_create_collections=plex_data.get("auto_create_collections", True),
+        library_name=os.environ.get(
+            "PLEX_LIBRARY_NAME", plex_data.get("library_name", "Game Clips")
+        ),
+        auto_scan=_env_bool("PLEX_AUTO_SCAN", plex_data.get("auto_scan", True)),
+        auto_create_collections=_env_bool(
+            "PLEX_AUTO_COLLECTIONS", plex_data.get("auto_create_collections", True)
+        ),
         verify_ssl=plex_verify_ssl,
     )
 
@@ -137,13 +145,15 @@ def load_config(config_path: Path) -> AppConfig:
         ]
     )
 
+    debounce_seconds = int(os.environ.get("DEBOUNCE_SECONDS", data.get("debounce_seconds", 10)))
+
     return AppConfig(
         clips_dir=clips_dir,
         extensions=data.get("extensions", [".mp4", ".mkv", ".mov"]),
         data_dir=data_dir,
         ffmpeg_path=data.get("ffmpeg_path", "ffmpeg"),
         ffprobe_path=data.get("ffprobe_path", "ffprobe"),
-        debounce_seconds=data.get("debounce_seconds", 10),
+        debounce_seconds=debounce_seconds,
         game_name_map=data.get("game_name_map", {}),
         plex=plex,
         youtube=youtube,

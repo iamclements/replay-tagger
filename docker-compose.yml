@@ -8,8 +8,9 @@ services:
       - ${CLIPS_DIR:-./clips}:/clips
       # Persist the SQLite state DB and Plex/YouTube tokens between restarts
       - ./data:/app/data
-      # Mount your config file (read-only; secrets go in .env)
-      - ./config.yaml:/app/config.yaml:ro
+      # config.yaml is optional: all settings can be set via env vars in .env
+      # Uncomment only if you need game_name_map or notification webhooks
+      # - ./config.yaml:/app/config.yaml:ro
 
     environment:
       # User/group ID; match these to the owner of your clips folder on the host
