@@ -123,23 +123,3 @@ class StateDB:
                 "SELECT COUNT(*) FROM processed_files WHERE youtube_id IS NOT NULL"
             ).fetchone()[0]
         return {"total_tagged": total, "total_uploaded": uploaded}
-
-    def last_tagged(self) -> dict[str, str] | None:
-        """Returns the most recently tagged clip, or None if the DB is empty."""
-        with self._connect() as conn:
-            row = conn.execute(
-                "SELECT file_path, game_name, tagged_at FROM processed_files"
-                " ORDER BY tagged_at DESC LIMIT 1"
-            ).fetchone()
-        if not row:
-            return None
-        return {
-            "file_path": row["file_path"],
-            "game_name": row["game_name"],
-            "tagged_at": row["tagged_at"],
-        }
-
-    def clear_tagged(self, file_path: Path) -> None:
-        """Remove a file's record so it will be retagged on the next run."""
-        with self._connect() as conn:
-            conn.execute("DELETE FROM processed_files WHERE file_path = ?", (str(file_path),))
