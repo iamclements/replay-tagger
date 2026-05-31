@@ -7,8 +7,18 @@ from typing import Any
 import structlog
 
 
-def configure(level: str, fmt: str) -> None:
-    """Configure structlog for either JSON (production) or pretty console (dev) output."""
+def configure(level: str, fmt: str, silent: bool = False) -> None:
+    """Configure structlog for either JSON (production) or pretty console (dev) output.
+
+    Pass silent=True to suppress all log output (used by the doctor command).
+    """
+    if silent:
+        structlog.configure(
+            wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL),
+            cache_logger_on_first_use=False,
+        )
+        return
+
     log_level = getattr(logging, level.upper(), logging.INFO)
 
     logging.basicConfig(

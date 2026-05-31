@@ -113,6 +113,48 @@ def _build_youtube(config: AppConfig):  # type: ignore[no-untyped-def]
     return client
 
 
+def _upload_file(
+    file_path: Path,
+    game_name: str,
+    content_hash: str | None,
+    config: AppConfig,
+    youtube: YouTubeClient,
+    db: StateDB,
+    notifier: NotificationClient | None,
+) -> None:
+    bound = log.bind(file=file_path.name, game=game_name)
+    if content_hash and db.get_youtube_id_by_hash(content_hash) is not None:
+        bound.debug("skipped_upload", reason="already_uploaded")
+        return
+    if db.get_youtube_id(file_path) is not None:
+        bound.debug("skipped_upload", reason="already_uploaded")
+        return
+    first_seen = db.get_first_seen(file_path)
+    if first_seen is not None:
+        age_days = (datetime.now(UTC) - first_seen).days
+        if age_days < config.youtube.upload_after_days:
+            bound.debug(
+                "upload_deferred",
+                age_days=age_days,
+                required=config.youtube.upload_after_days,
+            )
+            return
+    try:
+        video_id = youtube.upload(file_path, game_name, privacy=config.youtube.privacy)
+        db.mark_uploaded(file_path, video_id)
+        if notifier:
+            from replaytagger.notifications import NotifyEvent
+
+            notifier.notify(
+                NotifyEvent.CLIP_UPLOADED,
+                game=game_name,
+                file=file_path.name,
+                video_id=video_id,
+            )
+    except Exception as exc:
+        bound.error("upload_failed", error=str(exc))
+
+
 def _process_file(
     file_path: Path,
     config: AppConfig,
@@ -143,43 +185,7 @@ def _process_file(
         db.mark_tagged(file_path, game_name, content_hash)
 
     if youtube and config.youtube.auto_upload and not dry_run:
-        # Content-hash dedup (path-independent; survives renames)
-        if content_hash and db.get_youtube_id_by_hash(content_hash) is not None:
-            bound.debug("skipped_upload", reason="already_uploaded")
-            return tagged
-        # Legacy path-based dedup for clips uploaded before hash tracking
-        if db.get_youtube_id(file_path) is not None:
-            bound.debug("skipped_upload", reason="already_uploaded")
-            return tagged
-        # Age gate: wait for the clip to be reviewed/renamed before uploading
-        first_seen = db.get_first_seen(file_path)
-        if first_seen is not None:
-            age_days = (datetime.now(UTC) - first_seen).days
-            if age_days < config.youtube.upload_after_days:
-                bound.debug(
-                    "upload_deferred",
-                    age_days=age_days,
-                    required=config.youtube.upload_after_days,
-                )
-                return tagged
-        try:
-            video_id = youtube.upload(
-                file_path,
-                game_name,
-                privacy=config.youtube.privacy,
-            )
-            db.mark_uploaded(file_path, video_id)
-            if notifier:
-                from replaytagger.notifications import NotifyEvent
-
-                notifier.notify(
-                    NotifyEvent.CLIP_UPLOADED,
-                    game=game_name,
-                    file=file_path.name,
-                    video_id=video_id,
-                )
-        except Exception as exc:
-            bound.error("upload_failed", error=str(exc))
+        _upload_file(file_path, game_name, content_hash, config, youtube, db, notifier)
 
     return tagged
 
@@ -505,17 +511,10 @@ def retag(ctx: click.Context, file: Path, game_name: str | None) -> None:
 @click.pass_context
 def doctor(ctx: click.Context) -> None:
     """Check configuration, paths, and connectivity."""
-    import logging
     import shutil
 
-    import structlog
-
-    # Silence all structlog output during doctor - it has its own click.echo formatting.
-    # cache_logger_on_first_use=False ensures the new wrapper takes effect immediately.
-    structlog.configure(
-        wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL),
-        cache_logger_on_first_use=False,
-    )
+    # Silence structlog - doctor uses click.echo for its own formatted output.
+    rt_logging.configure("CRITICAL", "json", silent=True)
 
     config: AppConfig = ctx.obj["config"]
     passed = True
