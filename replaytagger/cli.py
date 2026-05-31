@@ -288,7 +288,7 @@ def watch(ctx: click.Context) -> None:
 
     # Process existing untagged files before entering watch mode
     log.info("processing_existing_clips")
-    run.invoke(ctx)
+    ctx.invoke(run, force=False)
 
     if dry_run:
         log.info("dry_run_complete", message="watch loop skipped in dry-run mode")
