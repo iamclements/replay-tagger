@@ -505,12 +505,17 @@ def retag(ctx: click.Context, file: Path, game_name: str | None) -> None:
 @click.pass_context
 def doctor(ctx: click.Context) -> None:
     """Check configuration, paths, and connectivity."""
+    import logging
     import shutil
 
     import structlog
 
-    # Route structlog to stderr so JSON log lines don't interleave with doctor output
-    structlog.configure(logger_factory=structlog.PrintLoggerFactory(sys.stderr))
+    # Silence all structlog output during doctor - it has its own click.echo formatting.
+    # cache_logger_on_first_use=False ensures the new wrapper takes effect immediately.
+    structlog.configure(
+        wrapper_class=structlog.make_filtering_bound_logger(logging.CRITICAL + 1),
+        cache_logger_on_first_use=False,
+    )
 
     config: AppConfig = ctx.obj["config"]
     passed = True
