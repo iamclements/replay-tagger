@@ -137,7 +137,8 @@ def _process_file(
         # Genre was written in a prior run but not recorded in DB; backfill it
         tagged = True
 
-    content_hash = compute_content_hash(file_path) if not dry_run else None
+    needs_hash = not dry_run and (tagged or (youtube and config.youtube.auto_upload))
+    content_hash = compute_content_hash(file_path) if needs_hash else None
 
     if tagged and not dry_run:
         db.mark_tagged(file_path, game_name, content_hash)
@@ -382,7 +383,8 @@ def youtube_sync(ctx: click.Context) -> None:
     uploaded = skipped = 0
 
     for clip in clips:
-        bound = log.bind(file=clip.name, game=clip.parent.name)
+        game_name = _resolve_game(clip.parent.name, config.game_name_map)
+        bound = log.bind(file=clip.name, game=game_name)
         content_hash = compute_content_hash(clip)
 
         if (
@@ -403,10 +405,10 @@ def youtube_sync(ctx: click.Context) -> None:
         try:
             video_id = client.upload(
                 clip,
-                clip.parent.name,
+                game_name,
                 privacy=config.youtube.privacy,
             )
-            db.mark_tagged(clip, clip.parent.name, content_hash)
+            db.mark_tagged(clip, game_name, content_hash)
             db.mark_uploaded(clip, video_id)
             uploaded += 1
         except Exception as exc:
@@ -444,7 +446,7 @@ def upload(ctx: click.Context, file: Path, privacy: str | None) -> None:
     client = YouTubeClient(config.youtube.credentials_file, config.youtube.token_file)
     client.authenticate()
 
-    game_name = file.parent.name
+    game_name = _resolve_game(file.parent.name, config.game_name_map)
     effective_privacy = privacy or config.youtube.privacy
 
     video_id = client.upload(
@@ -548,7 +550,13 @@ def doctor(ctx: click.Context) -> None:
             for f in config.clips_dir.rglob("*")
             if f.is_file() and f.suffix.lower() in config.extensions
         )
-        ok("clips_dir", f"{config.clips_dir} ({clip_count} clip(s))")
+        try:
+            probe = config.clips_dir / ".doctor_write"
+            probe.write_text("ok")
+            probe.unlink()
+            ok("clips_dir", f"{config.clips_dir} ({clip_count} clip(s), writable)")
+        except Exception as exc:
+            warn("clips_dir_write", f"exists but not writable: {exc}")
     else:
         fail("clips_dir", f"{config.clips_dir} not found")
 
