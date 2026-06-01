@@ -80,14 +80,14 @@ class YouTubeClient:
 
             if exc.code == 400:
                 raise RuntimeError(
-                    f"Google rejected the device authorization request (HTTP 400).\n\n"
-                    f"Most common cause: the OAuth client in Google Cloud Console is not\n"
-                    f"set to 'TV and Limited Input devices'.\n\n"
-                    f"To fix:\n"
-                    f"  1. Go to console.cloud.google.com > APIs & Services > Credentials\n"
-                    f"  2. Delete the current OAuth client\n"
-                    f"  3. Create a new one: type = 'TV and Limited Input devices'\n"
-                    f"  4. Update YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET in .env\n"
+                    "Google rejected the device authorization request (HTTP 400).\n\n"
+                    "Most common cause: the OAuth client in Google Cloud Console is not\n"
+                    "set to 'TV and Limited Input devices'.\n\n"
+                    "To fix:\n"
+                    "  1. Open Google Cloud Console > APIs & Services > Credentials\n"
+                    "  2. Delete the current OAuth client\n"
+                    "  3. Create a new one: type = 'TV and Limited Input devices'\n"
+                    "  4. Update YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET in .env\n"
                     f"  5. Run: docker compose run --rm replaytagger youtube-auth\n\n"
                     f"Google error: {error_desc}"
                 ) from exc

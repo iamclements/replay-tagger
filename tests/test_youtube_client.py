@@ -86,7 +86,7 @@ class TestDeviceFlow400:
         msg = str(exc_info.value)
         assert "HTTP 400" in msg
         assert "TV and Limited Input devices" in msg
-        assert "console.cloud.google.com" in msg
+        assert "Google Cloud Console" in msg
         assert "youtube-auth" in msg
 
     def test_non_400_error_re_raises_without_client_type_hint(self, tmp_path: Path) -> None:
