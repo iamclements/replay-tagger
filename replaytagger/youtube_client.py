@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 import structlog
+from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -33,31 +34,66 @@ class YouTubeClient:
         self.token_file = token_file
         self._service: Any = None
 
+    def _load_client_credentials(self) -> tuple[str, str]:
+        """Return (client_id, client_secret) from env vars or credentials file."""
+        client_id = os.environ.get("YOUTUBE_CLIENT_ID")
+        client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
+        if client_id and client_secret:
+            return client_id, client_secret
+
+        if not self.credentials_file.exists():
+            raise FileNotFoundError(
+                f"YouTube credentials file not found: {self.credentials_file}\n"
+                "Either set YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET env vars,\n"
+                "or download the credentials JSON from Google Cloud Console."
+            )
+        raw = json.loads(self.credentials_file.read_text())
+        client_info: dict[str, str] = raw.get("installed") or raw.get("web") or {}
+        if not client_info:
+            raise ValueError(
+                "Unrecognised credentials file format; expected 'installed' or 'web' key.\n"
+                "Re-download from Google Cloud Console > APIs & Services > Credentials."
+            )
+        return client_info["client_id"], client_info["client_secret"]
+
     def _device_flow(self) -> Credentials:
         """OAuth2 device flow for Docker/headless environments.
 
         Prints a URL and short code; the user enters the code at google.com/device.
-        Credentials are sourced from YOUTUBE_CLIENT_ID/YOUTUBE_CLIENT_SECRET env vars
-        (recommended for Docker) or from the credentials JSON file (local dev).
         Requires a 'TV and Limited Input devices' OAuth client in GCP.
         """
-        client_id = os.environ.get("YOUTUBE_CLIENT_ID")
-        client_secret = os.environ.get("YOUTUBE_CLIENT_SECRET")
-
-        if not (client_id and client_secret):
-            raw = json.loads(self.credentials_file.read_text())
-            client_info: dict[str, str] = raw.get("installed") or raw.get("web") or {}
-            if not client_info:
-                raise ValueError(
-                    "Unrecognised credentials file format; expected 'installed' or 'web' key.\n"
-                    "Re-download from Google Cloud Console > APIs & Services > Credentials."
-                )
-            client_id = client_info["client_id"]
-            client_secret = client_info["client_secret"]
+        client_id, client_secret = self._load_client_credentials()
 
         data = urllib.parse.urlencode({"client_id": client_id, "scope": " ".join(SCOPES)}).encode()
-        with urllib.request.urlopen(urllib.request.Request(_DEVICE_CODE_URL, data=data)) as resp:
-            code_resp: dict[str, Any] = json.loads(resp.read())
+        try:
+            with urllib.request.urlopen(
+                urllib.request.Request(_DEVICE_CODE_URL, data=data)
+            ) as resp:
+                code_resp: dict[str, Any] = json.loads(resp.read())
+        except urllib.error.HTTPError as exc:
+            body_bytes = exc.read()
+            try:
+                body = json.loads(body_bytes)
+                error_desc = body.get("error_description", "")
+            except Exception:
+                error_desc = body_bytes.decode(errors="replace")
+
+            if exc.code == 400:
+                raise RuntimeError(
+                    f"Google rejected the device authorization request (HTTP 400).\n\n"
+                    f"Most common cause: the OAuth client in Google Cloud Console is not\n"
+                    f"set to 'TV and Limited Input devices'.\n\n"
+                    f"To fix:\n"
+                    f"  1. Go to console.cloud.google.com > APIs & Services > Credentials\n"
+                    f"  2. Delete the current OAuth client\n"
+                    f"  3. Create a new one: type = 'TV and Limited Input devices'\n"
+                    f"  4. Update YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET in .env\n"
+                    f"  5. Run: docker compose run --rm replaytagger youtube-auth\n\n"
+                    f"Google error: {error_desc}"
+                ) from exc
+            raise RuntimeError(
+                f"Failed to start YouTube device authorization (HTTP {exc.code}): {error_desc}"
+            ) from exc
 
         device_code: str = code_resp["device_code"]
         user_code: str = code_resp["user_code"]
@@ -90,8 +126,8 @@ class YouTubeClient:
                 ) as resp:
                     token_resp: dict[str, Any] = json.loads(resp.read())
             except urllib.error.HTTPError as exc:
-                body: dict[str, Any] = json.loads(exc.read())
-                error = body.get("error", "")
+                poll_body: dict[str, Any] = json.loads(exc.read())
+                error = poll_body.get("error", "")
                 if error == "authorization_pending":
                     continue
                 elif error == "slow_down":
@@ -101,7 +137,7 @@ class YouTubeClient:
                     raise RuntimeError("YouTube authorization denied.")
                 else:
                     raise RuntimeError(
-                        f"OAuth2 error: {error}: {body.get('error_description', '')}"
+                        f"OAuth2 error: {error}: {poll_body.get('error_description', '')}"
                     )
 
             return Credentials(  # type: ignore[no-untyped-call]
@@ -116,30 +152,67 @@ class YouTubeClient:
         raise RuntimeError("Authorization timed out; the code expired before it was entered.")
 
     def authenticate(self) -> None:
-        """Run OAuth2 device flow on first run; refreshes token silently after."""
+        """Load token from file and refresh if needed; runs device flow if no valid token exists.
+
+        If the token file exists but has no refresh_token (Google omits it on
+        re-authorization), the previous refresh_token is carried over so that
+        subsequent expiry cycles can still refresh silently.
+        """
         creds: Credentials | None = None
+        existing_refresh_token: str | None = None
 
         if self.token_file.exists():
-            creds = Credentials.from_authorized_user_file(str(self.token_file), SCOPES)  # type: ignore[no-untyped-call]
-
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())  # type: ignore[no-untyped-call]
-            else:
-                has_env_creds = bool(
-                    os.environ.get("YOUTUBE_CLIENT_ID") and os.environ.get("YOUTUBE_CLIENT_SECRET")
+            try:
+                creds = Credentials.from_authorized_user_file(  # type: ignore[no-untyped-call]
+                    str(self.token_file), SCOPES
                 )
-                if not has_env_creds and not self.credentials_file.exists():
-                    raise FileNotFoundError(
-                        f"YouTube credentials file not found: {self.credentials_file}\n"
-                        "Either set YOUTUBE_CLIENT_ID and YOUTUBE_CLIENT_SECRET env vars,\n"
-                        "or download the credentials JSON from Google Cloud Console."
-                    )
-                creds = self._device_flow()
+                # Preserve the refresh token in case a re-auth doesn't re-issue one.
+                existing_refresh_token = creds.refresh_token
+            except Exception as exc:
+                log.warning("youtube_token_load_failed", error=str(exc))
+                creds = None
 
-            self.token_file.parent.mkdir(parents=True, exist_ok=True)
-            self.token_file.write_text(creds.to_json())  # type: ignore[no-untyped-call]
-            log.info("youtube_token_saved", path=str(self.token_file))
+        if creds and creds.valid:
+            log.debug("youtube_token_valid")
+        elif creds and creds.expired and creds.refresh_token:
+            try:
+                creds.refresh(Request())  # type: ignore[no-untyped-call]
+                log.info("youtube_token_refreshed")
+            except RefreshError as exc:
+                log.warning(
+                    "youtube_token_refresh_failed",
+                    error=str(exc),
+                    action="re-running device authorization flow",
+                )
+                creds = self._device_flow()
+        else:
+            if creds and creds.expired and not creds.refresh_token:
+                log.warning(
+                    "youtube_token_no_refresh_token",
+                    action="re-running device authorization flow",
+                    hint=(
+                        "If this happens repeatedly, delete data/youtube_token.json "
+                        "and run youtube-auth again"
+                    ),
+                )
+            creds = self._device_flow()
+
+        # If the new credentials are missing a refresh_token (Google doesn't always
+        # re-issue one), carry over the token from the previous session.
+        if creds.refresh_token is None and existing_refresh_token:
+            creds = Credentials(  # type: ignore[no-untyped-call]
+                token=creds.token,
+                refresh_token=existing_refresh_token,
+                token_uri=creds.token_uri,
+                client_id=creds.client_id,
+                client_secret=creds.client_secret,
+                scopes=creds.scopes,
+            )
+            log.debug("youtube_refresh_token_carried_over")
+
+        self.token_file.parent.mkdir(parents=True, exist_ok=True)
+        self.token_file.write_text(creds.to_json())  # type: ignore[no-untyped-call]
+        log.info("youtube_token_saved", path=str(self.token_file))
 
         self._service = build(YOUTUBE_API_SERVICE, YOUTUBE_API_VERSION, credentials=creds)
         log.info("youtube_authenticated")
@@ -158,7 +231,7 @@ class YouTubeClient:
             "snippet": {
                 "title": file_path.stem,
                 "description": f"Game clip from {game_name}.",
-                "tags": [game_name, "gaming", "clips", "NVIDIA"],
+                "tags": [game_name, "gaming", "clips"],
                 "categoryId": "20",  # Gaming
             },
             "status": {
