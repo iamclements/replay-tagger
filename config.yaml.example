@@ -25,6 +25,13 @@ data_dir: data
 ffmpeg_path: ffmpeg
 ffprobe_path: ffprobe
 
+# Optional: directory for ffmpeg temp files during tagging.
+# Defaults to the same directory as the source clip (enables atomic rename).
+# Set this to a non-synced directory (e.g. data/) if Syncthing or another sync
+# tool locks temp files that appear in the clips folder, causing EBUSY errors.
+# In Docker: set to /app/data. Also settable via FFMPEG_TEMP_DIR env var.
+# ffmpeg_temp_dir: data
+
 # Seconds to wait after a file event before processing (lets Syncthing finish writing)
 debounce_seconds: 10
 

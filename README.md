@@ -286,6 +286,13 @@ ReplayTagger exits at startup with `plex_library_not_found` if the name doesn't 
 **Plex auth fails or token is rejected**
 Get a fresh token from Plex Web (View XML method in Step 4) and update `PLEX_TOKEN` in `.env`. Tokens don't expire but are invalidated if you change your Plex password or revoke devices from your Plex account dashboard.
 
+**Clips fail with `Device or resource busy` errors**
+Syncthing (or another sync tool) is locking ffmpeg's temp files as they appear in the clips directory. Set `FFMPEG_TEMP_DIR=/app/data` in `.env` to redirect temp files to the data volume, which is not watched by Syncthing:
+```bash
+FFMPEG_TEMP_DIR=/app/data
+```
+This moves temp files outside the synced folder. Tagging of `.mov` clips (ProRes, H.264, etc.) and `.mkv` clips is also now handled correctly.
+
 **Plex scans not triggering / collections not updating**
 ReplayTagger still tags files and updates the database if Plex is unreachable; it logs a warning and continues. Check that `PLEX_URL` resolves from inside the container's network (use the LAN IP, not a hostname that only resolves on the host).
 
@@ -369,6 +376,7 @@ All settings can be configured via `.env`. Secrets must use env vars and never g
 | `PLEX_AUTO_COLLECTIONS` | `true` to create smart collections per game (default: `true`) |
 | `PLEX_VERIFY_SSL` | Set to `false` if Plex uses a self-signed cert (default: `true`) |
 | `DEBOUNCE_SECONDS` | Seconds to wait after a file event before processing (default: `10`) |
+| `FFMPEG_TEMP_DIR` | Directory for ffmpeg temp files during tagging. Set to `/app/data` if Syncthing causes `Device or resource busy` errors on clips. |
 | `YOUTUBE_CLIENT_ID` | GCP OAuth client ID |
 | `YOUTUBE_CLIENT_SECRET` | GCP OAuth client secret |
 | `YOUTUBE_ENABLED` | `true` or `false`; overrides config.yaml |
