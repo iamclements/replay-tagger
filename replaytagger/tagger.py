@@ -6,6 +6,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import time
 from pathlib import Path
 
 import structlog
@@ -24,9 +25,15 @@ def compute_content_hash(file_path: Path, max_bytes: int = 4 * 1024 * 1024) -> s
 class Tagger:
     """Reads and writes genre metadata on video files using ffmpeg/ffprobe."""
 
-    def __init__(self, ffmpeg_path: str = "ffmpeg", ffprobe_path: str = "ffprobe") -> None:
+    def __init__(
+        self,
+        ffmpeg_path: str = "ffmpeg",
+        ffprobe_path: str = "ffprobe",
+        temp_dir: Path | None = None,
+    ) -> None:
         self.ffmpeg_path = ffmpeg_path
         self.ffprobe_path = ffprobe_path
+        self.temp_dir = temp_dir
         self._validate_binaries()
 
     def _validate_binaries(self) -> None:
@@ -80,8 +87,10 @@ class Tagger:
 
         original_mtime = file_path.stat().st_mtime
 
-        # Write to a temp file in the same directory to allow atomic replace
-        tmp_fd, tmp_name = tempfile.mkstemp(suffix=".tmp.mp4", dir=file_path.parent)
+        # Write temp file to temp_dir if configured (keeps sync-tool-watched dirs clean),
+        # otherwise write alongside the source file for an atomic rename.
+        tmp_dir = self.temp_dir if self.temp_dir is not None else file_path.parent
+        tmp_fd, tmp_name = tempfile.mkstemp(suffix=f".tmp{file_path.suffix}", dir=tmp_dir)
         tmp_path = Path(tmp_name)
         os.close(tmp_fd)
 
@@ -107,7 +116,22 @@ class Tagger:
                 tmp_path.unlink(missing_ok=True)
                 return False
 
-            tmp_path.replace(file_path)
+            # Retry the replace on EBUSY (16) - a sync tool such as Syncthing may
+            # briefly lock the temp file as it appears in the watched directory.
+            for attempt in range(1, 4):
+                try:
+                    tmp_path.replace(file_path)
+                    break
+                except OSError as exc:
+                    if exc.errno != 16 or attempt == 3:  # 16 = EBUSY
+                        raise
+                    bound.warning(
+                        "replace_busy_retry",
+                        attempt=attempt,
+                        hint="set ffmpeg_temp_dir in config.yaml to a non-synced directory",
+                    )
+                    time.sleep(attempt * 2)
+
             os.utime(file_path, (original_mtime, original_mtime))
             bound.info("tagged")
             return True

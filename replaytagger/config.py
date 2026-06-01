@@ -54,6 +54,7 @@ class AppConfig:
     data_dir: Path = Path("data")
     ffmpeg_path: str = "ffmpeg"
     ffprobe_path: str = "ffprobe"
+    ffmpeg_temp_dir: Path | None = None
     debounce_seconds: int = 10
     game_name_map: dict[str, str] = field(default_factory=dict)
     plex: PlexConfig = field(default_factory=PlexConfig)
@@ -147,12 +148,16 @@ def load_config(config_path: Path) -> AppConfig:
 
     debounce_seconds = int(os.environ.get("DEBOUNCE_SECONDS", data.get("debounce_seconds", 10)))
 
+    _temp_dir_raw = os.environ.get("FFMPEG_TEMP_DIR", data.get("ffmpeg_temp_dir"))
+    ffmpeg_temp_dir = Path(_temp_dir_raw) if _temp_dir_raw else None
+
     return AppConfig(
         clips_dir=clips_dir,
         extensions=data.get("extensions", [".mp4", ".mkv", ".mov"]),
         data_dir=data_dir,
         ffmpeg_path=data.get("ffmpeg_path", "ffmpeg"),
         ffprobe_path=data.get("ffprobe_path", "ffprobe"),
+        ffmpeg_temp_dir=ffmpeg_temp_dir,
         debounce_seconds=debounce_seconds,
         game_name_map=data.get("game_name_map", {}),
         plex=plex,

@@ -229,7 +229,7 @@ def run(ctx: click.Context, force: bool) -> None:
     dry_run: bool = ctx.obj["dry_run"]
 
     db = StateDB(config.data_dir / "state.db")
-    tagger = Tagger(config.ffmpeg_path, config.ffprobe_path)
+    tagger = Tagger(config.ffmpeg_path, config.ffprobe_path, config.ffmpeg_temp_dir)
     plex = _build_plex(config)
     youtube = _build_youtube(config)
     notifier = _build_notifications(config)
@@ -288,7 +288,7 @@ def watch(ctx: click.Context) -> None:
     dry_run: bool = ctx.obj["dry_run"]
 
     db = StateDB(config.data_dir / "state.db")
-    tagger = Tagger(config.ffmpeg_path, config.ffprobe_path)
+    tagger = Tagger(config.ffmpeg_path, config.ffprobe_path, config.ffmpeg_temp_dir)
     plex = _build_plex(config)
     youtube = _build_youtube(config)
     notifier = _build_notifications(config)
@@ -506,7 +506,7 @@ def retag(ctx: click.Context, file: Path, game_name: str | None) -> None:
     dry_run: bool = ctx.obj["dry_run"]
 
     resolved_game = game_name or _resolve_game(file.parent.name, config.game_name_map)
-    tagger = Tagger(config.ffmpeg_path, config.ffprobe_path)
+    tagger = Tagger(config.ffmpeg_path, config.ffprobe_path, config.ffmpeg_temp_dir)
     db = StateDB(config.data_dir / "state.db")
 
     tagged = tagger.tag(file, resolved_game, dry_run=dry_run, force=True)
