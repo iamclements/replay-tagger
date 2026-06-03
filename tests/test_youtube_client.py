@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from google.auth.exceptions import RefreshError
 
-from replaytagger.youtube_client import YouTubeClient
+from replaytagger.youtube_client import YouTubeClient, YouTubeQuotaExceededError
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -227,6 +227,68 @@ class TestRefreshTokenCarryOver:
 # ---------------------------------------------------------------------------
 # NVIDIA tag removed from uploads
 # ---------------------------------------------------------------------------
+
+
+class TestUploadQuota:
+    def _make_http_error(self, status: int, reason: str) -> MagicMock:
+        from googleapiclient.errors import HttpError
+
+        content = json.dumps({"error": {"errors": [{"reason": reason}]}}).encode()
+        resp = MagicMock()
+        resp.status = status
+        resp.status_code = status
+        err = HttpError(resp=resp, content=content)
+        return err
+
+    def test_quota_exceeded_raises_typed_error(self, tmp_path: Path) -> None:
+        client = _make_client(tmp_path)
+        mock_service = MagicMock()
+        client._service = mock_service
+
+        quota_error = self._make_http_error(403, "quotaExceeded")
+        mock_service.videos.return_value.insert.return_value.next_chunk.side_effect = quota_error
+
+        fake_clip = tmp_path / "clip.mp4"
+        fake_clip.write_bytes(b"fake")
+
+        with patch("replaytagger.youtube_client.MediaFileUpload"):
+            with pytest.raises(YouTubeQuotaExceededError) as exc_info:
+                client.upload(fake_clip, "Apex Legends")
+
+        assert "quota" in str(exc_info.value).lower()
+        assert "midnight" in str(exc_info.value).lower()
+
+    def test_daily_limit_exceeded_raises_typed_error(self, tmp_path: Path) -> None:
+        client = _make_client(tmp_path)
+        mock_service = MagicMock()
+        client._service = mock_service
+
+        quota_error = self._make_http_error(403, "dailyLimitExceeded")
+        mock_service.videos.return_value.insert.return_value.next_chunk.side_effect = quota_error
+
+        fake_clip = tmp_path / "clip.mp4"
+        fake_clip.write_bytes(b"fake")
+
+        with patch("replaytagger.youtube_client.MediaFileUpload"):
+            with pytest.raises(YouTubeQuotaExceededError):
+                client.upload(fake_clip, "Apex Legends")
+
+    def test_other_403_reraises_http_error(self, tmp_path: Path) -> None:
+        from googleapiclient.errors import HttpError
+
+        client = _make_client(tmp_path)
+        mock_service = MagicMock()
+        client._service = mock_service
+
+        other_error = self._make_http_error(403, "forbidden")
+        mock_service.videos.return_value.insert.return_value.next_chunk.side_effect = other_error
+
+        fake_clip = tmp_path / "clip.mp4"
+        fake_clip.write_bytes(b"fake")
+
+        with patch("replaytagger.youtube_client.MediaFileUpload"):
+            with pytest.raises(HttpError):
+                client.upload(fake_clip, "Apex Legends")
 
 
 class TestUploadTags:
