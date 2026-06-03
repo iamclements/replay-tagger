@@ -527,6 +527,18 @@ def status(ctx: click.Context) -> None:
         name = Path(last["file_path"]).name
         click.echo(f"Last tagged  : {name} ({last['game_name']}) at {last['tagged_at']}")
 
+    by_game = db.stats_by_game()
+    if by_game:
+        click.echo("")
+        name_w = max(len(str(row["game_name"])) for row in by_game)
+        name_w = max(name_w, 4)  # minimum header width
+        click.echo(f"  {'Game':<{name_w}}  {'Clips':>5}  {'Uploaded':>8}")
+        click.echo(f"  {'-' * name_w}  {'-----':>5}  {'--------':>8}")
+        for row in by_game:
+            click.echo(
+                f"  {str(row['game_name']):<{name_w}}  {row['clips']:>5}  {row['uploaded']:>8}"
+            )
+
 
 @main.command()
 @click.pass_context
