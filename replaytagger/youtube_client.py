@@ -101,13 +101,13 @@ class YouTubeClient:
         expires_in: int = int(code_resp["expires_in"])
         interval: int = int(code_resp.get("interval", 5))
 
-        print("\n" + "=" * 60)
-        print("YouTube Authorization Required")
-        print("=" * 60)
-        print(f"  1. Open:  {verification_url}")
-        print(f"  2. Enter: {user_code}")
-        print("=" * 60)
-        print(f"(Code expires in {expires_in // 60} minutes)\n")
+        print("\n" + "=" * 60, flush=True)
+        print("YouTube Authorization Required", flush=True)
+        print("=" * 60, flush=True)
+        print(f"  1. Open:  {verification_url}", flush=True)
+        print(f"  2. Enter: {user_code}", flush=True)
+        print("=" * 60, flush=True)
+        print(f"(Code expires in {expires_in // 60} minutes)\n", flush=True)
 
         deadline = time.monotonic() + expires_in
         while time.monotonic() < deadline:
