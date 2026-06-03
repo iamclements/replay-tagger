@@ -124,6 +124,20 @@ class StateDB:
             ).fetchone()[0]
         return {"total_tagged": total, "total_uploaded": uploaded}
 
+    def stats_by_game(self) -> list[dict[str, int | str]]:
+        """Return per-game clip and upload counts, ordered by clip count descending."""
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT game_name, COUNT(*) as clips, COUNT(youtube_id) as uploaded"
+                " FROM processed_files"
+                " GROUP BY game_name"
+                " ORDER BY clips DESC"
+            ).fetchall()
+        return [
+            {"game_name": row["game_name"], "clips": row["clips"], "uploaded": row["uploaded"]}
+            for row in rows
+        ]
+
     def last_tagged(self) -> dict[str, str] | None:
         """Returns the most recently tagged clip, or None if the DB is empty."""
         with self._connect() as conn:
