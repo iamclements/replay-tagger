@@ -195,6 +195,60 @@ def _process_file(
     return tagged
 
 
+def _scan_all(
+    config: AppConfig,
+    tagger: Tagger,
+    db: StateDB,
+    plex: PlexClient | None,
+    youtube: YouTubeClient | None,
+    notifier: NotificationClient | None,
+    dry_run: bool,
+    force: bool = False,
+) -> int:
+    """Scan clips_dir, tag new files, update collections, and trigger one Plex scan.
+
+    Returns the count of newly tagged files.
+    """
+    clips = [
+        f
+        for f in config.clips_dir.rglob("*")
+        if f.is_file() and f.suffix.lower() in config.extensions
+    ]
+
+    log.info("scan_started", total=len(clips), dry_run=dry_run, force=force)
+
+    newly_tagged = 0
+    for clip in clips:
+        try:
+            if _process_file(
+                clip, config, tagger, db, plex, youtube, dry_run, notifier, force=force
+            ):
+                newly_tagged += 1
+        except Exception as exc:
+            log.error("file_error", file=clip.name, error=str(exc))
+            if notifier:
+                from replaytagger.notifications import NotifyEvent
+
+                notifier.notify(NotifyEvent.ERROR, file=clip.name, error=str(exc))
+
+    if plex and config.plex.auto_create_collections:
+        for game in {_resolve_game(f.parent.name, config.game_name_map) for f in clips}:
+            plex.ensure_collection(game)
+
+    if plex and config.plex.auto_scan:
+        plex.scan()
+
+    stats = db.stats()
+    log.info("scan_complete", **stats)
+
+    if notifier and not dry_run and newly_tagged > 0:
+        from replaytagger.notifications import NotifyEvent
+
+        notifier.notify(NotifyEvent.SCAN_COMPLETE, tagged=newly_tagged, total=len(clips))
+
+    return newly_tagged
+
+
 @click.group()
 @click.version_option(__version__)
 @click.option(
@@ -228,54 +282,20 @@ def run(ctx: click.Context, force: bool) -> None:
     config: AppConfig = ctx.obj["config"]
     dry_run: bool = ctx.obj["dry_run"]
 
+    if not config.clips_dir.exists():
+        log.error("clips_dir_not_found", path=str(config.clips_dir))
+        sys.exit(1)
+
     db = StateDB(config.data_dir / "state.db")
     tagger = Tagger(config.ffmpeg_path, config.ffprobe_path, config.ffmpeg_temp_dir)
     plex = _build_plex(config)
     youtube = _build_youtube(config)
     notifier = _build_notifications(config)
 
-    if not config.clips_dir.exists():
-        log.error("clips_dir_not_found", path=str(config.clips_dir))
-        sys.exit(1)
+    _scan_all(config, tagger, db, plex, youtube, notifier, dry_run, force=force)
 
-    clips = [
-        f
-        for f in config.clips_dir.rglob("*")
-        if f.is_file() and f.suffix.lower() in config.extensions
-    ]
 
-    log.info("scan_started", total=len(clips), dry_run=dry_run, force=force)
-
-    newly_tagged = 0
-    for clip in clips:
-        try:
-            if _process_file(
-                clip, config, tagger, db, plex, youtube, dry_run, notifier, force=force
-            ):
-                newly_tagged += 1
-        except Exception as exc:
-            log.error("file_error", file=clip.name, error=str(exc))
-            if notifier:
-                from replaytagger.notifications import NotifyEvent
-
-                notifier.notify(NotifyEvent.ERROR, file=clip.name, error=str(exc))
-
-    # Ensure collections exist for every game in the clips directory
-    if plex and config.plex.auto_create_collections:
-        for game in {_resolve_game(f.parent.name, config.game_name_map) for f in clips}:
-            plex.ensure_collection(game)
-
-    # Trigger a single Plex scan after all files are processed
-    if plex and config.plex.auto_scan:
-        plex.scan()
-
-    stats = db.stats()
-    log.info("scan_complete", **stats)
-
-    if notifier and not dry_run and newly_tagged > 0:
-        from replaytagger.notifications import NotifyEvent
-
-        notifier.notify(NotifyEvent.SCAN_COMPLETE, tagged=newly_tagged, total=len(clips))
+_PLEX_SCAN_COALESCE_SECONDS = 30
 
 
 @main.command()
@@ -287,29 +307,35 @@ def watch(ctx: click.Context) -> None:
     config: AppConfig = ctx.obj["config"]
     dry_run: bool = ctx.obj["dry_run"]
 
+    if not config.clips_dir.exists():
+        log.error("clips_dir_not_found", path=str(config.clips_dir))
+        sys.exit(1)
+
     db = StateDB(config.data_dir / "state.db")
     tagger = Tagger(config.ffmpeg_path, config.ffprobe_path, config.ffmpeg_temp_dir)
     plex = _build_plex(config)
     youtube = _build_youtube(config)
     notifier = _build_notifications(config)
 
-    if not config.clips_dir.exists():
-        log.error("clips_dir_not_found", path=str(config.clips_dir))
-        sys.exit(1)
-
-    # Process existing untagged files before entering watch mode
+    # Process existing untagged files before entering watch mode using the
+    # already-constructed clients - avoids a second Plex handshake and YouTube auth.
     log.info("processing_existing_clips")
-    ctx.invoke(run, force=False)
+    _scan_all(config, tagger, db, plex, youtube, notifier, dry_run, force=False)
 
     if dry_run:
         log.info("dry_run_complete", message="watch loop skipped in dry-run mode")
         return
 
+    _last_plex_scan: list[float] = [0.0]  # mutable container so the closure can write it
+
     def on_new_clip(file_path: Path) -> None:
         try:
             newly = _process_file(file_path, config, tagger, db, plex, youtube, dry_run, notifier)
             if plex and config.plex.auto_scan:
-                plex.scan()
+                now = time.monotonic()
+                if now - _last_plex_scan[0] >= _PLEX_SCAN_COALESCE_SECONDS:
+                    plex.scan()
+                    _last_plex_scan[0] = now
             if notifier and newly and not dry_run:
                 from replaytagger.notifications import NotifyEvent
 
