@@ -2,55 +2,34 @@ services:
   replaytagger:
     image: ghcr.io/iamclements/replay-tagger:latest
     container_name: replaytagger
-
-    volumes:
-      # Mount your game clips folder (read-write so ffmpeg can re-mux files)
-      - ${CLIPS_DIR:-./clips}:/clips
-      # Persist the SQLite state DB and Plex/YouTube tokens between restarts
-      - ./data:/app/data
-      # config.yaml is optional: all settings can be set via env vars in .env
-      # Uncomment only if you need game_name_map or notification webhooks
-      # - ./config.yaml:/app/config.yaml:ro
-
     environment:
-      # User/group ID; match these to the owner of your clips folder on the host
-      # Run `id` on the host to find the right values
       - PUID=${PUID:-1000}
       - PGID=${PGID:-1000}
-      # Plex; set these in your .env file, never commit secrets
-      - PLEX_TOKEN=${PLEX_TOKEN:-}
+      - PLEX_ENABLED=${PLEX_ENABLED:-false}
       - PLEX_URL=${PLEX_URL:-http://localhost:32400}
-      # Set to false if using HTTPS with a self-signed cert (common on LAN)
+      - PLEX_TOKEN=${PLEX_TOKEN:-}
+      - PLEX_LIBRARY_NAME=${PLEX_LIBRARY_NAME:-Game Clips}
       - PLEX_VERIFY_SSL=${PLEX_VERIFY_SSL:-true}
-      # Uncomment to enable YouTube uploads via environment (overrides config.yaml)
-      # - YOUTUBE_ENABLED=true
-      # YouTube OAuth client credentials (alternative to mounting a credentials JSON file)
+      - PLEX_AUTO_SCAN=${PLEX_AUTO_SCAN:-true}
+      - PLEX_AUTO_COLLECTIONS=${PLEX_AUTO_COLLECTIONS:-true}
+      - YOUTUBE_ENABLED=${YOUTUBE_ENABLED:-false}
       - YOUTUBE_CLIENT_ID=${YOUTUBE_CLIENT_ID:-}
       - YOUTUBE_CLIENT_SECRET=${YOUTUBE_CLIENT_SECRET:-}
-      # YouTube privacy override (private | unlisted | public)
       - YOUTUBE_PRIVACY=${YOUTUBE_PRIVACY:-private}
-      # Uncomment to delay uploads until clips have been in the folder for N days
-      # (gives time to trim and rename before they appear on YouTube)
-      # - YOUTUBE_UPLOAD_AFTER_DAYS=3
-      # Plex client identification (shown in Plex → Settings → Devices)
-      - PLEXAPI_HEADER_PRODUCT=ReplayTagger
-      - PLEXAPI_HEADER_DEVICE=ReplayTagger
-      - PLEXAPI_HEADER_DEVICE_NAME=ReplayTagger
-      # Logging; use "text" for human-readable output during debugging
+      - YOUTUBE_AUTO_UPLOAD=${YOUTUBE_AUTO_UPLOAD:-false}
+      - YOUTUBE_UPLOAD_AFTER_DAYS=${YOUTUBE_UPLOAD_AFTER_DAYS:-0}
+      - DEBOUNCE_SECONDS=${DEBOUNCE_SECONDS:-10}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LOG_FORMAT=${LOG_FORMAT:-json}
-
+    volumes:
+      - ${CLIPS_DIR:-./clips}:/clips
+      - ./data:/app/data
+      # Uncomment to use config.yaml (required for game_name_map and webhooks)
+      # - ./config.yaml:/app/config.yaml:ro
     restart: unless-stopped
-
-    # Watcher writes /app/data/.health every 30s; container managers (Portainer,
-    # Synology, Unraid) will show healthy/unhealthy automatically
     healthcheck:
       test: ["CMD", "replaytagger", "--config", "/app/config.yaml", "health"]
       interval: 30s
       timeout: 10s
       start_period: 60s
       retries: 3
-
-    # Run once and exit instead of watching (useful for Task Scheduler / cron)
-    # profiles: [run-once]
-    # command: ["run"]
