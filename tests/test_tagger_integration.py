@@ -3,6 +3,7 @@
 These tests skip automatically when ffmpeg is not on PATH, so they are safe
 to run in any environment. CI installs ffmpeg, so they always run there.
 """
+
 from __future__ import annotations
 
 import json
@@ -33,11 +34,20 @@ def _make_clip(path: Path) -> None:
     subprocess.run(
         [
             "ffmpeg",
-            "-f", "lavfi", "-i", "color=black:size=16x16:rate=1",
-            "-f", "lavfi", "-i", "anullsrc=r=44100:cl=mono",
-            "-t", "1",
-            "-c:v", "libx264",
-            "-c:a", "aac",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=black:size=16x16:rate=1",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=r=44100:cl=mono",
+            "-t",
+            "1",
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "aac",
             str(path),
             "-y",
         ],
@@ -51,9 +61,12 @@ def _ffprobe_format(path: Path) -> dict:
     result = subprocess.run(
         [
             "ffprobe",
-            "-v", "quiet",
-            "-print_format", "json",
-            "-show_entries", "format",
+            "-v",
+            "quiet",
+            "-print_format",
+            "json",
+            "-show_entries",
+            "format",
             str(path),
         ],
         capture_output=True,
