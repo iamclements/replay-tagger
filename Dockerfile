@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 FROM python:3.12-slim
 
 LABEL org.opencontainers.image.title="ReplayTagger" \
-      org.opencontainers.image.description="Auto-tag NVIDIA game clips for Plex collections" \
+      org.opencontainers.image.description="Auto-tag game clips for Plex and Jellyfin collections" \
       org.opencontainers.image.source="https://github.com/iamclements/replay-tagger" \
       org.opencontainers.image.licenses="MIT"
 

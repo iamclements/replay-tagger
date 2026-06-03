@@ -175,7 +175,7 @@ Plex tokens don't expire and grant full access to your account; treat this value
 
 ### Step 5: Start
 
-Set `PUID`/`PGID` in `.env` to match the owner of your clips folder (run `id` on the host to find the right values). Then start the container:
+Set `PUID`/`PGID` in `.env` to match the user that owns your clips folder on the host (run `id` to find the right values). The container runs as that UID and reads/writes clips directly - it does **not** chown your clips folder on startup, so the UID must already have access. Then start the container:
 
 ```bash
 docker compose up -d
