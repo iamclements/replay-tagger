@@ -20,6 +20,7 @@ from replaytagger import logging as rt_logging
 from replaytagger.config import AppConfig, load_config
 from replaytagger.db import StateDB
 from replaytagger.tagger import Tagger, compute_content_hash
+from replaytagger.youtube_client import YouTubeQuotaExceededError
 
 log = structlog.get_logger(__name__)
 
@@ -155,6 +156,8 @@ def _upload_file(
                 file=file_path.name,
                 video_id=video_id,
             )
+    except YouTubeQuotaExceededError:
+        raise
     except Exception as exc:
         bound.error("upload_failed", error=str(exc))
 
@@ -224,6 +227,13 @@ def _scan_all(
                 clip, config, tagger, db, plex, youtube, dry_run, notifier, force=force
             ):
                 newly_tagged += 1
+        except YouTubeQuotaExceededError as exc:
+            log.warning(
+                "youtube_quota_exceeded",
+                message="daily upload quota reached - remaining clips will be uploaded tomorrow",
+                detail=str(exc),
+            )
+            break
         except Exception as exc:
             log.error("file_error", file=clip.name, error=str(exc))
             if notifier:
@@ -447,6 +457,13 @@ def youtube_sync(ctx: click.Context) -> None:
             db.mark_tagged(clip, game_name, content_hash)
             db.mark_uploaded(clip, video_id)
             uploaded += 1
+        except YouTubeQuotaExceededError as exc:
+            log.warning(
+                "youtube_quota_exceeded",
+                message="daily upload quota reached - remaining clips will be uploaded tomorrow",
+                detail=str(exc),
+            )
+            break
         except Exception as exc:
             bound.error("upload_failed", error=str(exc))
 

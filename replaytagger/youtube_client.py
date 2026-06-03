@@ -14,6 +14,7 @@ from google.auth.exceptions import RefreshError
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
 log = structlog.get_logger(__name__)
@@ -23,6 +24,11 @@ YOUTUBE_API_SERVICE = "youtube"
 YOUTUBE_API_VERSION = "v3"
 _DEVICE_CODE_URL = "https://oauth2.googleapis.com/device/code"
 _TOKEN_URL = "https://oauth2.googleapis.com/token"
+_QUOTA_REASONS = {"quotaExceeded", "dailyLimitExceeded"}
+
+
+class YouTubeQuotaExceededError(Exception):
+    """Raised when the YouTube Data API daily upload quota is exhausted."""
 _DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
 
 
@@ -248,13 +254,33 @@ class YouTubeClient:
         )
 
         log.info("uploading", file=file_path.name, privacy=privacy)
-        request = self._service.videos().insert(
-            part=",".join(body.keys()), body=body, media_body=media
-        )
+        try:
+            request = self._service.videos().insert(
+                part=",".join(body.keys()), body=body, media_body=media
+            )
 
-        response = None
-        while response is None:
-            _, response = request.next_chunk()
+            response = None
+            while response is None:
+                _, response = request.next_chunk()
+        except HttpError as exc:
+            if exc.status_code == 403:
+                body_json: dict[str, Any] = {}
+                try:
+                    body_json = json.loads(exc.content)
+                except Exception:
+                    pass
+                reasons = {
+                    e.get("reason", "")
+                    for e in body_json.get("error", {}).get("errors", [])
+                }
+                if reasons & _QUOTA_REASONS:
+                    raise YouTubeQuotaExceededError(
+                        "YouTube daily upload quota exceeded (~6 clips/day on the free tier). "
+                        "Uploads resume once the quota resets at midnight Pacific. "
+                        "To raise the limit: console.cloud.google.com"
+                        " > APIs & Services > YouTube Data API v3 > Quotas."
+                    ) from exc
+            raise
 
         video_id: str = response["id"]
         log.info("uploaded", file=file_path.name, video_id=video_id)

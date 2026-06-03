@@ -231,6 +231,8 @@ youtube:
 
 > Set `upload_after_days` to a non-zero value if you want a review window before clips go public. `youtube-sync` bypasses this; use it to push a backlog on demand.
 
+**YouTube quota:** The free YouTube Data API quota is 10,000 units/day. Each upload costs ~1,600 units, so you can upload roughly 6 clips per day. When the quota is exhausted, ReplayTagger logs a `youtube_quota_exceeded` warning and stops uploading for the rest of the run - remaining clips will be picked up automatically next time `youtube-sync` or `watch` runs after midnight Pacific (when the quota resets). To increase the limit, request a quota increase at Google Cloud Console > APIs & Services > YouTube Data API v3 > Quotas.
+
 #### Upload options
 
 | Goal | Command |
