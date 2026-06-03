@@ -48,12 +48,33 @@ class _ClipEventHandler(FileSystemEventHandler):
             timer.start()
         log.debug("watch_event_queued", path=Path(path).name, delay=self.debounce_seconds)
 
+    _SIZE_POLL_INTERVAL = 2  # seconds between size samples
+
     def _fire(self, path: str) -> None:
         with self._lock:
             self._pending.pop(path, None)
         file_path = Path(path)
-        if file_path.exists():
-            self.callback(file_path)
+        if not file_path.exists():
+            return
+        try:
+            size_before = file_path.stat().st_size
+            time.sleep(self._SIZE_POLL_INTERVAL)
+            if not file_path.exists():
+                return
+            size_after = file_path.stat().st_size
+        except OSError:
+            return
+        if size_before != size_after:
+            log.debug(
+                "watch_file_still_growing",
+                path=file_path.name,
+                before=size_before,
+                after=size_after,
+                action="requeue",
+            )
+            self._schedule(path)
+            return
+        self.callback(file_path)
 
 
 def watch(
