@@ -372,6 +372,7 @@ All settings can be configured via `.env`. Secrets must use env vars and never g
 | `YOUTUBE_CLIENT_ID` | GCP OAuth client ID |
 | `YOUTUBE_CLIENT_SECRET` | GCP OAuth client secret |
 | `YOUTUBE_ENABLED` | `true` or `false`; overrides config.yaml |
+| `YOUTUBE_AUTO_UPLOAD` | `true` to upload clips automatically as they arrive in watch mode |
 | `YOUTUBE_PRIVACY` | `private`, `unlisted`, or `public` |
 | `YOUTUBE_UPLOAD_AFTER_DAYS` | Override `upload_after_days` |
 | `LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING` (default: `INFO`) |

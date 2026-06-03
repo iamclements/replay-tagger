@@ -127,7 +127,7 @@ def load_config(config_path: Path) -> AppConfig:
 
     youtube = YouTubeConfig(
         enabled=yt_enabled,
-        auto_upload=youtube_data.get("auto_upload", False),
+        auto_upload=_env_bool("YOUTUBE_AUTO_UPLOAD", youtube_data.get("auto_upload", False)),
         privacy=os.environ.get("YOUTUBE_PRIVACY", youtube_data.get("privacy", "private")),
         upload_after_days=yt_upload_after_days,
         credentials_file=Path(yt_credentials),
