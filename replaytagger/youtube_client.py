@@ -29,6 +29,8 @@ _QUOTA_REASONS = {"quotaExceeded", "dailyLimitExceeded"}
 
 class YouTubeQuotaExceededError(Exception):
     """Raised when the YouTube Data API daily upload quota is exhausted."""
+
+
 _DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
 
 
@@ -270,8 +272,7 @@ class YouTubeClient:
                 except Exception:
                     pass
                 reasons = {
-                    e.get("reason", "")
-                    for e in body_json.get("error", {}).get("errors", [])
+                    e.get("reason", "") for e in body_json.get("error", {}).get("errors", [])
                 }
                 if reasons & _QUOTA_REASONS:
                     raise YouTubeQuotaExceededError(
