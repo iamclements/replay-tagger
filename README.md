@@ -3,7 +3,7 @@
   ReplayTagger
 </h1>
 
-Watches your game clips folder and tags each file with its game name so Plex builds per-game collections automatically. Built for NVIDIA Instant Replay, works with any capture tool that organizes clips into per-game folders.
+Watches your game clips folder and tags each file with its game name so Plex builds per-game collections automatically. Works with NVIDIA Instant Replay, OBS, AMD ReLive, or any capture tool that organizes clips into per-game folders.
 
 [![CI](https://github.com/iamclements/replay-tagger/actions/workflows/ci.yml/badge.svg)](https://github.com/iamclements/replay-tagger/actions/workflows/ci.yml)
 [![Security Scan](https://github.com/iamclements/replay-tagger/actions/workflows/security.yml/badge.svg)](https://github.com/iamclements/replay-tagger/actions/workflows/security.yml)
@@ -302,6 +302,7 @@ ReplayTagger still tags files and updates the database if Plex is unreachable; i
 ```bash
 docker exec replaytagger replaytagger status
 ```
+Prints totals and a per-game breakdown of clip counts and YouTube uploads.
 
 **Logs are hard to read**
 Set `LOG_FORMAT=json` (default) for structured logs, or switch to `LOG_FORMAT=text` for human-readable output during debugging:
@@ -407,7 +408,7 @@ Commands:
   youtube-auth   Authorize YouTube via device flow (URL + code, no browser needed)
   youtube-sync   Upload all tagged clips that have passed upload_after_days
   upload FILE    Upload a single clip to YouTube
-  status         Show tagging and upload counts and last activity
+  status         Show tagging and upload counts, last activity, and per-game breakdown
 ```
 
 ```bash
