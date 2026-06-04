@@ -273,6 +273,24 @@ class TestUploadQuota:
             with pytest.raises(YouTubeQuotaExceededError):
                 client.upload(fake_clip, "Apex Legends")
 
+    def test_rate_limit_429_raises_typed_error(self, tmp_path: Path) -> None:
+        client = _make_client(tmp_path)
+        mock_service = MagicMock()
+        client._service = mock_service
+
+        rate_error = self._make_http_error(429, "rateLimitExceeded")
+        mock_service.videos.return_value.insert.return_value.next_chunk.side_effect = rate_error
+
+        fake_clip = tmp_path / "clip.mp4"
+        fake_clip.write_bytes(b"fake")
+
+        with patch("replaytagger.youtube_client.MediaFileUpload"):
+            with pytest.raises(YouTubeQuotaExceededError) as exc_info:
+                client.upload(fake_clip, "Apex Legends")
+
+        assert "429" in str(exc_info.value)
+        assert "midnight" in str(exc_info.value).lower()
+
     def test_other_403_reraises_http_error(self, tmp_path: Path) -> None:
         from googleapiclient.errors import HttpError
 

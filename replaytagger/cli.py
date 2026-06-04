@@ -192,7 +192,7 @@ def _process_file(
     if tagged and not dry_run:
         db.mark_tagged(file_path, game_name, content_hash)
 
-    if youtube and config.youtube.auto_upload and not dry_run:
+    if tagged and youtube and config.youtube.auto_upload and not dry_run:
         _upload_file(file_path, game_name, content_hash, config, youtube, db, notifier)
 
     return tagged
