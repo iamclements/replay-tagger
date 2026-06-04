@@ -106,6 +106,35 @@ def test_run_dry_run_no_modifications(runner: CliRunner, tmp_path: Path) -> None
     assert StateDB(data_dir / "state.db").stats()["total_tagged"] == 0
 
 
+def test_run_failed_tag_skips_youtube_upload(
+    runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A file that fails ffmpeg tagging must not be uploaded to YouTube."""
+    monkeypatch.setenv("YOUTUBE_CLIENT_ID", "fake-id")
+    monkeypatch.setenv("YOUTUBE_CLIENT_SECRET", "fake-secret")
+    cfg, clips_dir, _ = _make_config(
+        tmp_path,
+        {
+            "youtube": {
+                "enabled": True,
+                "auto_upload": True,
+                "privacy": "private",
+                "upload_after_days": 0,
+            }
+        },  # noqa: E501
+    )
+    _fake_clip(clips_dir)
+    mock_tagger = MagicMock()
+    mock_tagger.tag.return_value = False
+    mock_tagger.get_genre.return_value = None
+    mock_youtube = MagicMock()
+    with patch("replaytagger.cli.Tagger", return_value=mock_tagger):
+        with patch("replaytagger.cli._build_youtube", return_value=mock_youtube):
+            result = runner.invoke(main, ["--config", str(cfg), "run"])
+    assert result.exit_code == 0
+    mock_youtube.upload.assert_not_called()
+
+
 def test_run_force_reprocesses_tagged_files(runner: CliRunner, tmp_path: Path) -> None:
     cfg, clips_dir, data_dir = _make_config(tmp_path)
     clip = _fake_clip(clips_dir)

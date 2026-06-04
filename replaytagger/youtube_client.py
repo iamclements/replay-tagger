@@ -265,6 +265,11 @@ class YouTubeClient:
             while response is None:
                 _, response = request.next_chunk()
         except HttpError as exc:
+            if exc.status_code == 429:
+                raise YouTubeQuotaExceededError(
+                    "YouTube rate limit hit (HTTP 429). "
+                    "Uploads paused until quota resets at midnight Pacific."
+                ) from exc
             if exc.status_code == 403:
                 body_json: dict[str, Any] = {}
                 try:
