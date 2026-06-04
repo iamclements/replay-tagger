@@ -7,6 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.0] - 2026-06-03
+
+### Added
+- `status` command now prints a per-game breakdown table: clip count and YouTube upload count per game, ordered by clip count descending
+- `YOUTUBE_AUTO_UPLOAD` env var to enable auto-upload in watch mode without editing `config.yaml`
+- YouTube quota handling: HTTP 403 quota-exceeded responses are caught and logged with a clear `youtube_quota_exceeded` warning including the reset time; remaining clips are retried on the next run instead of crashing
+- File size stability check in watch mode: before processing a new clip the watcher polls the file size twice 2 seconds apart and re-queues if still growing - protects against slow network copies stalling mid-write
+- ffmpeg integration tests using real ffmpeg: cover genre tagging, container format preservation (MP4 and MKV), mtime restoration, dry-run, and force-retag
+- All supported env vars now listed with defaults in `docker-compose.yml` so the full configuration surface is visible without reading docs
+
+### Fixed
+- `.mov` (ProRes, H.264) and `.mkv` clips were silently remuxed into MP4 containers during tagging because the ffmpeg temp file always used a `.mp4` extension; temp file now uses the same extension as the source
+- `watch` command built Plex, YouTube, and database clients twice on startup (once for its own use and again inside `ctx.invoke(run)`); clients are now built once and passed directly to the shared `_scan_all()` function
+- Plex library scan fired once per clip when a Syncthing backlog arrived in watch mode; scans are now coalesced to at most one per 30 seconds
+- YouTube device flow auth prompt was not visible until Ctrl+C in Docker due to stdout buffering; all `print()` calls now use `flush=True`
+- YouTube auth crashed with an unhandled `RefreshError` when a token was revoked or expired; now falls back to device flow automatically and re-authenticates
+- YouTube HTTP 400 from the device code endpoint showed a raw traceback with no guidance; now raises an actionable error explaining the "TV and Limited Input devices" OAuth client type requirement
+- `--version` reported `2.0.0` regardless of installed package version; now reads from package metadata via `importlib.metadata` and stays in sync with `pyproject.toml` automatically after every install
+- `chown -R /clips` ran on every container start, adding seconds to startup on large NAS shares and conflicting with Syncthing permission management; entrypoint now only chowns `/app/data`
+
+### Changed
+- Removed hardcoded `NVIDIA` tag from YouTube uploads; tags are now `[game_name, "gaming", "clips"]`
+- Docker image OCI description label updated from "NVIDIA game clips" to "game clips"
+- README intro updated to list NVIDIA, OBS, and AMD ReLive as examples
+
 ## [2.3.0] - 2026-05-31
 
 ### Added
