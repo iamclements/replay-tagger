@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.1] - 2026-06-04
+
+### Fixed
+- Clips that fail ffmpeg tagging (e.g. corrupt file, moov atom not found) are no longer uploaded to YouTube; the auto_upload call is now gated on tagging success
+- HTTP 429 (rate limit) from the YouTube Data API now raises `YouTubeQuotaExceededError` and stops the upload loop cleanly instead of crashing with an unhandled `HttpError`
+
 ## [2.4.0] - 2026-06-03
 
 ### Added
