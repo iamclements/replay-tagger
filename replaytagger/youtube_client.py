@@ -24,7 +24,7 @@ YOUTUBE_API_SERVICE = "youtube"
 YOUTUBE_API_VERSION = "v3"
 _DEVICE_CODE_URL = "https://oauth2.googleapis.com/device/code"
 _TOKEN_URL = "https://oauth2.googleapis.com/token"
-_QUOTA_REASONS = {"quotaExceeded", "dailyLimitExceeded"}
+_QUOTA_REASONS = {"quotaExceeded", "dailyLimitExceeded", "uploadLimitExceeded"}
 
 
 class YouTubeQuotaExceededError(Exception):
@@ -222,7 +222,9 @@ class YouTubeClient:
         self.token_file.write_text(creds.to_json())  # type: ignore[no-untyped-call]
         log.info("youtube_token_saved", path=str(self.token_file))
 
-        self._service = build(YOUTUBE_API_SERVICE, YOUTUBE_API_VERSION, credentials=creds)
+        self._service = build(
+            YOUTUBE_API_SERVICE, YOUTUBE_API_VERSION, credentials=creds, cache_discovery=False
+        )
         log.info("youtube_authenticated")
 
     def upload(
@@ -270,7 +272,7 @@ class YouTubeClient:
                     "YouTube rate limit hit (HTTP 429). "
                     "Uploads paused until quota resets at midnight Pacific."
                 ) from exc
-            if exc.status_code == 403:
+            if exc.status_code in (400, 403):
                 body_json: dict[str, Any] = {}
                 try:
                     body_json = json.loads(exc.content)
@@ -279,6 +281,12 @@ class YouTubeClient:
                 reasons = {
                     e.get("reason", "") for e in body_json.get("error", {}).get("errors", [])
                 }
+                if "uploadLimitExceeded" in reasons:
+                    raise YouTubeQuotaExceededError(
+                        "YouTube channel upload limit exceeded. "
+                        "The channel has hit its total video count cap. "
+                        "Delete videos or request a limit increase via YouTube Studio."
+                    ) from exc
                 if reasons & _QUOTA_REASONS:
                     raise YouTubeQuotaExceededError(
                         "YouTube daily upload quota exceeded (~6 clips/day on the free tier). "
