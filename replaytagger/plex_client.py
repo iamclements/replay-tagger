@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 import warnings
+from typing import Any
 
 import plexapi
 import requests
@@ -69,23 +70,36 @@ class PlexClient:
         except Exception as exc:
             log.warning("plex_scan_failed", error=str(exc))
 
-    def ensure_collection(self, game_name: str) -> None:
-        """Create a smart collection for a game if one doesn't already exist."""
+    def ensure_collection(self, game_name: str) -> Any | None:
+        """Create a smart collection for a game if one doesn't already exist.
+
+        Returns the new Collection object when created, None if it already existed.
+        """
         lib = self._library
         try:
             existing_lower = {c.title.lower() for c in lib.collections()}
             if game_name.lower() in existing_lower:
                 log.debug("collection_exists", game=game_name)
-                return
+                return None
 
-            lib.createCollection(
+            collection = lib.createCollection(
                 title=game_name,
                 smart=True,
                 filters={"genre": game_name},
             )
             log.info("collection_created", game=game_name)
+            return collection
         except Exception as exc:
             log.warning("collection_create_failed", game=game_name, error=str(exc))
+            return None
+
+    def set_collection_poster(self, collection: Any, url: str) -> None:
+        """Upload a poster to a Plex collection from a remote URL."""
+        try:
+            collection.uploadPoster(url=url)
+            log.info("collection_poster_set", game=collection.title)
+        except Exception as exc:
+            log.warning("collection_poster_failed", game=collection.title, error=str(exc))
 
     def list_collections(self) -> list[str]:
         return [c.title for c in self._library.collections()]

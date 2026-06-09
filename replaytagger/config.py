@@ -61,6 +61,7 @@ class AppConfig:
     youtube: YouTubeConfig = field(default_factory=YouTubeConfig)
     logging: LoggingConfig = field(default_factory=LoggingConfig)
     notifications: NotificationsConfig = field(default_factory=NotificationsConfig)
+    steamgriddb_api_key: str | None = None
 
 
 def load_config(config_path: Path) -> AppConfig:
@@ -164,4 +165,5 @@ def load_config(config_path: Path) -> AppConfig:
         youtube=youtube,
         logging=LoggingConfig(level=log_level, format=log_format),
         notifications=notifications,
+        steamgriddb_api_key=os.environ.get("STEAMGRIDDB_API_KEY") or None,
     )

@@ -243,7 +243,13 @@ def _scan_all(
 
     if plex and config.plex.auto_create_collections:
         for game in {_resolve_game(f.parent.name, config.game_name_map) for f in clips}:
-            plex.ensure_collection(game)
+            new_collection = plex.ensure_collection(game)
+            if new_collection is not None and config.steamgriddb_api_key:
+                from replaytagger.steamgriddb import fetch_portrait_url
+
+                art_url = fetch_portrait_url(game, config.steamgriddb_api_key)
+                if art_url:
+                    plex.set_collection_poster(new_collection, art_url)
 
     if plex and config.plex.auto_scan:
         plex.scan()
@@ -711,6 +717,12 @@ def doctor(ctx: click.Context) -> None:
     # Game name map
     if config.game_name_map:
         ok("game_name_map", f"{len(config.game_name_map)} mapping(s) active")
+
+    # SteamGridDB
+    if config.steamgriddb_api_key:
+        ok("steamgriddb", "API key set - collection art will be fetched on creation")
+    else:
+        skip("steamgriddb", "set STEAMGRIDDB_API_KEY to auto-set collection poster art")
 
     total = counts["OK"] + counts["FAIL"] + counts["WARN"] + counts["SKIP"]
     summary_parts = [f"{counts['OK']} passed"]

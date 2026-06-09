@@ -71,6 +71,12 @@ plex:
   # Also set PLEX_VERIFY_SSL=false in your .env
   verify_ssl: true
 
+# ── SteamGridDB collection art (optional) ─────────────────────────────────────
+# Set STEAMGRIDDB_API_KEY in .env to automatically fetch portrait artwork from
+# SteamGridDB when a new Plex collection is created. The API key is free -
+# register at steamgriddb.com and copy it from Profile > Preferences > API.
+# This is a secret - keep it in .env, not here.
+
 # ── YouTube archive ───────────────────────────────────────────────────────────
 youtube:
   enabled: false
