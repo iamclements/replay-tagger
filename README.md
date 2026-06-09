@@ -1,7 +1,6 @@
-<h1>
-  <img src="docs/images/logo.svg" width="40" alt="">
-  ReplayTagger
-</h1>
+<p align="center">
+  <img src="docs/images/banner.svg" alt="ReplayTagger" width="400">
+</p>
 
 Watches your game clips folder and tags each file with its game name so Plex builds per-game collections automatically. Works with NVIDIA Instant Replay, OBS, AMD ReLive, or any capture tool that organizes clips into per-game folders.
 
@@ -9,8 +8,6 @@ Watches your game clips folder and tags each file with its game name so Plex bui
 [![Security Scan](https://github.com/iamclements/replay-tagger/actions/workflows/security.yml/badge.svg)](https://github.com/iamclements/replay-tagger/actions/workflows/security.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Docker](https://img.shields.io/badge/Docker-ghcr.io-blue)](https://github.com/iamclements/replay-tagger/pkgs/container/replay-tagger)
-
-![Gaming Clips collections in Plex](docs/images/banner.png)
 
 ---
 
