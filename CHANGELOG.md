@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.4.2] - 2026-06-08
+
+### Fixed
+- `uploadLimitExceeded` (HTTP 400) from the YouTube Data API now raises `YouTubeQuotaExceededError` and stops the upload loop instead of logging a per-file error and continuing to attempt every remaining clip
+- Suppressed the spurious `file_cache is only supported with oauth2client<4.0.0` warning at startup by passing `cache_discovery=False` to the YouTube API client
+
 ## [2.4.1] - 2026-06-04
 
 ### Fixed
