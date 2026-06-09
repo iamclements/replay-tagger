@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-06-09
+
+### Added
+- SteamGridDB integration: set `STEAMGRIDDB_API_KEY` (free, no account tier) to automatically fetch portrait artwork from SteamGridDB and upload it to Plex when a new collection is created. Covers Steam, Ubisoft Connect, Battle.net, and community-submitted art for modded/private clients (iW4X, XDefiant, etc.)
+
+### Fixed
+- Plex collections were re-created on every run when the existing collection title had different capitalisation than the clip folder name (e.g. "XDefiant" in Plex vs "Xdefiant" as the NVIDIA folder name); ensure_collection now uses a case-insensitive comparison
+
 ## [2.4.2] - 2026-06-08
 
 ### Fixed
