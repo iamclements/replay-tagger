@@ -33,7 +33,8 @@ class TestEnsureCollection:
         lib = MagicMock()
         lib.collections.return_value = [_mock_collection("Apex Legends")]
         with self._patched(client, lib):
-            client.ensure_collection("Apex Legends")
+            result = client.ensure_collection("Apex Legends")
+        assert result is None
         lib.createCollection.assert_not_called()
 
     def test_skips_creation_on_case_mismatch(self) -> None:
@@ -42,7 +43,8 @@ class TestEnsureCollection:
         lib = MagicMock()
         lib.collections.return_value = [_mock_collection("XDefiant")]
         with self._patched(client, lib):
-            client.ensure_collection("Xdefiant")
+            result = client.ensure_collection("Xdefiant")
+        assert result is None
         lib.createCollection.assert_not_called()
 
     def test_creates_collection_when_absent(self) -> None:
@@ -50,9 +52,24 @@ class TestEnsureCollection:
         lib = MagicMock()
         lib.collections.return_value = [_mock_collection("Apex Legends")]
         with self._patched(client, lib):
-            client.ensure_collection("Battlefield 6")
+            result = client.ensure_collection("Battlefield 6")
+        assert result is lib.createCollection.return_value
         lib.createCollection.assert_called_once_with(
             title="Battlefield 6",
             smart=True,
             filters={"genre": "Battlefield 6"},
         )
+
+
+class TestSetCollectionPoster:
+    def test_calls_upload_poster(self) -> None:
+        client = _make_client()
+        collection = _mock_collection("Apex Legends")
+        client.set_collection_poster(collection, "https://cdn.example.com/art.jpg")
+        collection.uploadPoster.assert_called_once_with(url="https://cdn.example.com/art.jpg")
+
+    def test_logs_warning_on_failure(self) -> None:
+        client = _make_client()
+        collection = _mock_collection("Apex Legends")
+        collection.uploadPoster.side_effect = Exception("timeout")
+        client.set_collection_poster(collection, "https://cdn.example.com/art.jpg")

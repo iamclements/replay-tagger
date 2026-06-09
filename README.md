@@ -375,6 +375,7 @@ All settings can be configured via `.env`. Secrets must use env vars and never g
 | `PLEX_AUTO_SCAN` | `true` to trigger a Plex scan after tagging (default: `true`) |
 | `PLEX_AUTO_COLLECTIONS` | `true` to create smart collections per game (default: `true`) |
 | `PLEX_VERIFY_SSL` | Set to `false` if Plex uses a self-signed cert (default: `true`) |
+| `STEAMGRIDDB_API_KEY` | Optional - free API key from [steamgriddb.com](https://www.steamgriddb.com/profile/preferences/api); when set, fetches portrait artwork from SteamGridDB and uploads it to Plex when a new collection is created. Covers Steam, Ubisoft Connect, Battle.net, and community-submitted art for modded clients. |
 | `DEBOUNCE_SECONDS` | Seconds to wait after a file event before processing (default: `10`) |
 | `FFMPEG_TEMP_DIR` | Directory for ffmpeg temp files during tagging. Set to `/app/data` if Syncthing causes `Device or resource busy` errors on clips. |
 | `YOUTUBE_CLIENT_ID` | GCP OAuth client ID |
