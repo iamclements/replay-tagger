@@ -73,8 +73,8 @@ class PlexClient:
         """Create a smart collection for a game if one doesn't already exist."""
         lib = self._library
         try:
-            existing = {c.title for c in lib.collections()}
-            if game_name in existing:
+            existing_lower = {c.title.lower() for c in lib.collections()}
+            if game_name.lower() in existing_lower:
                 log.debug("collection_exists", game=game_name)
                 return
 
