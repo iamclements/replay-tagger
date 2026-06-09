@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="600" height="600">
+  <defs>
+    <!--
+      Logo at 2.5x scale, offset (200, 140).
+      x_new = x_orig * 2.5 + 200
+      y_new = y_orig * 2.5 + 140
+      Logo box: 200x200, centered at x=300, y=140 to y=340.
+    -->
+    <clipPath id="film-clip">
+      <rect x="225" y="160" width="150" height="40" rx="10"/>
+    </clipPath>
+
+    <filter id="dot-glow" x="-200%" y="-200%" width="500%" height="500%">
+      <feGaussianBlur stdDeviation="3.5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <style>
+    .title   { fill: #f1f5f9; }
+    .tagline { fill: #94a3b8; }
+    @media (prefers-color-scheme: light) {
+      .title   { fill: #0f172a; }
+      .tagline { fill: #475569; }
+    }
+  </style>
+
+  <!-- ===== Logo 2.5x, centered at x=300 ===== -->
+
+  <rect x="200" y="140" width="200" height="200" rx="30" fill="#080d1a" stroke="#1e293b" stroke-width="2"/>
+
+  <!-- Filmstrip slot: orig x=10,y=8,w=60,h=16 -> x=225,y=160,w=150,h=40 -->
+  <rect x="225" y="160" width="150" height="40" rx="10" fill="#111827"/>
+
+  <!-- Platform stripes -->
+  <path clip-path="url(#film-clip)" d="M215 200 L255 160 L282.5 160 L242.5 200 Z"  fill="#76b900"/>
+  <path clip-path="url(#film-clip)" d="M265 200 L305 160 L332.5 160 L292.5 200 Z"  fill="#e5a00d"/>
+  <path clip-path="url(#film-clip)" d="M315 200 L355 160 L382.5 160 L342.5 200 Z"  fill="#cc2200"/>
+
+  <!-- Filmstrip border -->
+  <rect x="225" y="160" width="150" height="40" rx="10" fill="none" stroke="#475569" stroke-width="2"/>
+
+  <!-- Board body: orig x=10,y=22,w=60,h=50 -> x=225,y=195,w=150,h=125 -->
+  <rect x="225" y="195" width="150" height="125" rx="10" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+  <line x1="225" y1="202.5" x2="375" y2="202.5" stroke="#475569" stroke-width="1.5"/>
+
+  <!-- Tagged row -->
+  <rect x="237.5" y="215" width="125" height="22.5" rx="4" fill="#4ade80" opacity="0.12"/>
+  <rect x="237.5" y="215" width="75"  height="22.5" rx="4" fill="#4ade80" opacity="0.22"/>
+  <circle cx="347.5" cy="226.25" r="8.75" fill="#4ade80" filter="url(#dot-glow)"/>
+
+  <!-- Metadata rows -->
+  <rect x="237.5" y="250"   width="90"  height="7.5" rx="2" fill="#334155"/>
+  <rect x="237.5" y="267.5" width="60"  height="7.5" rx="2" fill="#334155"/>
+  <rect x="237.5" y="285"   width="100" height="7.5" rx="2" fill="#263248"/>
+  <rect x="237.5" y="302.5" width="70"  height="7.5" rx="2" fill="#263248"/>
+
+  <!-- ===== Branding (centered) ===== -->
+
+  <text x="300" y="415"
+        class="title"
+        text-anchor="middle"
+        font-family="'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif"
+        font-size="52" font-weight="700" letter-spacing="-1.5">ReplayTagger</text>
+
+  <text x="300" y="452"
+        class="tagline"
+        text-anchor="middle"
+        font-family="'Segoe UI', system-ui, -apple-system, sans-serif"
+        font-size="15" letter-spacing="0.3">Tag clips. Build collections. Automatically.</text>
+
+</svg>
