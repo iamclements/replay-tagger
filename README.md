@@ -142,7 +142,7 @@ PLEX_TOKEN=xxxxxxxxxxxxxxxxxxxx  # see Step 4
 
 > `data_dir` defaults to `./data` next to `docker-compose.yml`, mapping to `/app/data` in the container. It holds the SQLite state database, Plex token, and YouTube token. The `data/` directory is the only state you need to back up; the database rebuilds itself from existing genre tags if lost, but re-tagging is slow on large libraries.
 
-**config.yaml is optional.** You only need it for `game_name_map` (renaming clip folders to game names) and notification webhooks. If you need either, download the example:
+**config.yaml is optional.** You only need it for multiple notification webhooks or complex `game_name_map` entries. Simple game name overrides and a single webhook can be set via env vars (`GAME_NAME_MAP`, `WEBHOOK_URL`). If you do need config.yaml, download the example:
 
 ```bash
 curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/config.yaml.example
@@ -394,6 +394,7 @@ All settings can be configured via `.env`. Secrets must use env vars and never g
 | `YOUTUBE_PRIVACY` | `private`, `unlisted`, or `public` |
 | `YOUTUBE_UPLOAD_AFTER_DAYS` | Override `upload_after_days` |
 | `YOUTUBE_SYNC_HOUR` | Hour (0-23 local time) for the daily YouTube sync pass in watch mode (default: `3`) |
+| `GAME_NAME_MAP` | JSON map of folder names to game names, e.g. `'{"Apex Legends Season 20": "Apex Legends"}'`; merged with and overrides config.yaml entries |
 | `WEBHOOK_URL` | Webhook URL for notifications (Discord or generic HTTP); alternative to configuring webhooks in config.yaml |
 | `WEBHOOK_TYPE` | `discord` or `generic` (auto-detected from URL if not set) |
 | `WEBHOOK_EVENTS` | Comma-separated event list for the env-var webhook (default: `scan_complete,error`) |
