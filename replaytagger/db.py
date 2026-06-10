@@ -27,6 +27,12 @@ class StateDB:
                     youtube_id     TEXT
                 )
             """)
+            conn.execute("""
+                CREATE TABLE IF NOT EXISTS kv_store (
+                    key   TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                )
+            """)
             self._migrate(conn)
 
     def _migrate(self, conn: sqlite3.Connection) -> None:
@@ -157,3 +163,26 @@ class StateDB:
         """Remove a file's record so it will be retagged on the next run."""
         with self._connect() as conn:
             conn.execute("DELETE FROM processed_files WHERE file_path = ?", (str(file_path),))
+
+    def set_quota_exceeded(self, at: datetime) -> None:
+        """Record the timestamp when the YouTube upload quota was exhausted."""
+        with self._connect() as conn:
+            conn.execute(
+                "INSERT OR REPLACE INTO kv_store (key, value) VALUES ('quota_exceeded_at', ?)",
+                (at.isoformat(),),
+            )
+
+    def get_quota_exceeded_at(self) -> datetime | None:
+        """Return when the YouTube quota was last exceeded, or None if never."""
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT value FROM kv_store WHERE key = 'quota_exceeded_at'"
+            ).fetchone()
+        if not row:
+            return None
+        return datetime.fromisoformat(row["value"])
+
+    def clear_quota_state(self) -> None:
+        """Clear the quota exceeded timestamp after a successful upload."""
+        with self._connect() as conn:
+            conn.execute("DELETE FROM kv_store WHERE key = 'quota_exceeded_at'")

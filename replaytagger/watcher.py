@@ -3,6 +3,7 @@ from __future__ import annotations
 import threading
 import time
 from collections.abc import Callable
+from datetime import date, datetime
 from pathlib import Path
 
 import structlog
@@ -83,12 +84,17 @@ def watch(
     extensions: list[str],
     debounce_seconds: int = 10,
     heartbeat_path: Path | None = None,
+    on_daily_sync: Callable[[], None] | None = None,
+    daily_sync_hour: int = 3,
 ) -> None:
     """
     Block indefinitely, calling callback(path) for each new/modified clip.
     The debounce delay lets Syncthing finish writing before processing.
     If heartbeat_path is provided, touches it on start and every 30 seconds
     so Docker HEALTHCHECK can verify the watcher is alive.
+    If on_daily_sync is provided, it is called once per calendar day when the
+    local hour reaches daily_sync_hour (0-23). Used to retry YouTube uploads
+    after a quota reset.
     """
     handler = _ClipEventHandler(callback, extensions, debounce_seconds)
     observer = Observer()
@@ -99,6 +105,8 @@ def watch(
     if heartbeat_path:
         heartbeat_path.touch()
 
+    last_sync_date: date | None = None
+
     try:
         tick = 0
         while observer.is_alive():
@@ -106,6 +114,15 @@ def watch(
             tick += 1
             if heartbeat_path and tick % 30 == 0:
                 heartbeat_path.touch()
+            if on_daily_sync is not None:
+                now = datetime.now()
+                today = now.date()
+                if last_sync_date != today and now.hour >= daily_sync_hour:
+                    last_sync_date = today
+                    try:
+                        on_daily_sync()
+                    except Exception:
+                        log.exception("daily_sync_error")
     except KeyboardInterrupt:
         log.info("watch_stopping")
     finally:

@@ -6,6 +6,7 @@ import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
+from zoneinfo import ZoneInfo
 
 import click
 import structlog
@@ -23,6 +24,8 @@ from replaytagger.tagger import Tagger, compute_content_hash
 from replaytagger.youtube_client import YouTubeQuotaExceededError
 
 log = structlog.get_logger(__name__)
+
+_PACIFIC = ZoneInfo("America/Los_Angeles")
 
 
 def _validate_config(config: AppConfig) -> None:
@@ -160,6 +163,98 @@ def _upload_file(
         raise
     except Exception as exc:
         bound.error("upload_failed", error=str(exc))
+
+
+def _run_youtube_sync_pass(
+    config: AppConfig,
+    youtube: YouTubeClient,
+    db: StateDB,
+    notifier: NotificationClient | None,
+    force: bool = False,
+) -> None:
+    """Upload tagged clips that haven't been uploaded yet.
+
+    Skips the pass if quota was exceeded within the last 20 hours, unless force=True.
+    Records quota exceeded timestamp on 429; clears it on first successful upload.
+    """
+    quota_exceeded_at = db.get_quota_exceeded_at()
+    if quota_exceeded_at is not None and not force:
+        now_pt = datetime.now(_PACIFIC)
+        exceeded_pt = quota_exceeded_at.astimezone(_PACIFIC)
+        if now_pt.date() <= exceeded_pt.date():
+            log.info(
+                "youtube_sync_skipped",
+                reason="quota exceeded - waiting for midnight Pacific reset",
+                exceeded_at=quota_exceeded_at.isoformat(),
+            )
+            return
+
+    if not config.clips_dir.exists():
+        log.error("clips_dir_not_found", path=str(config.clips_dir))
+        return
+
+    clips = [
+        f
+        for f in config.clips_dir.rglob("*")
+        if f.is_file() and f.suffix.lower() in config.extensions
+    ]
+
+    uploaded = skipped = 0
+    for clip in clips:
+        game_name = _resolve_game(clip.parent.name, config.game_name_map)
+        bound = log.bind(file=clip.name, game=game_name)
+        content_hash = compute_content_hash(clip)
+
+        if (
+            db.get_youtube_id_by_hash(content_hash) is not None
+            or db.get_youtube_id(clip) is not None
+        ):
+            skipped += 1
+            continue
+
+        if db.get_first_seen(clip) is None:
+            bound.debug("skipped_sync", reason="not_tagged")
+            continue
+
+        first_seen = db.get_first_seen(clip)
+        if first_seen is not None:
+            age_days = (datetime.now(UTC) - first_seen).days
+            if age_days < config.youtube.upload_after_days:
+                bound.debug(
+                    "upload_deferred",
+                    age_days=age_days,
+                    required=config.youtube.upload_after_days,
+                )
+                skipped += 1
+                continue
+
+        try:
+            video_id = youtube.upload(clip, game_name, privacy=config.youtube.privacy)
+            db.mark_tagged(clip, game_name, content_hash)
+            db.mark_uploaded(clip, video_id)
+            db.clear_quota_state()
+            if notifier:
+                from replaytagger.notifications import NotifyEvent
+
+                notifier.notify(
+                    NotifyEvent.CLIP_UPLOADED,
+                    game=game_name,
+                    file=clip.name,
+                    video_id=video_id,
+                )
+            uploaded += 1
+        except YouTubeQuotaExceededError as exc:
+            db.set_quota_exceeded(datetime.now(UTC))
+            log.warning(
+                "youtube_quota_exceeded",
+                message="daily upload quota reached - will retry at next scheduled sync",
+                detail=str(exc),
+            )
+            break
+        except Exception as exc:
+            bound.error("upload_failed", error=str(exc))
+
+    log.info("youtube_sync_complete", uploaded=uploaded, skipped=skipped)
 
 
 def _process_file(
@@ -367,12 +462,23 @@ def watch(ctx: click.Context) -> None:
 
                 notifier.notify(NotifyEvent.ERROR, file=file_path.name, error=str(exc))
 
+    daily_sync_callback = None
+    if youtube and config.youtube.enabled:
+
+        def _daily_sync() -> None:
+            log.info("daily_youtube_sync_starting", hour=config.youtube.sync_hour)
+            _run_youtube_sync_pass(config, youtube, db, notifier)
+
+        daily_sync_callback = _daily_sync
+
     watch_clips(
         config.clips_dir,
         on_new_clip,
         config.extensions,
         config.debounce_seconds,
         heartbeat_path=config.data_dir / ".health",
+        on_daily_sync=daily_sync_callback,
+        daily_sync_hour=config.youtube.sync_hour,
     )
 
 
@@ -405,11 +511,19 @@ def youtube_auth(ctx: click.Context) -> None:
 
 
 @main.command("youtube-sync")
+@click.option(
+    "--force",
+    is_flag=True,
+    help="Upload even if quota was exceeded recently (bypasses the 20-hour cooldown check)",
+)
 @click.pass_context
-def youtube_sync(ctx: click.Context) -> None:
-    """Upload all tagged clips that have passed the upload_after_days threshold."""
+def youtube_sync(ctx: click.Context, force: bool) -> None:
+    """Upload all tagged clips that have passed the upload_after_days threshold.
+
+    Skips automatically if quota was exceeded within the last 20 hours. Use --force
+    to override and attempt uploads regardless (useful after manually waiting for reset).
+    """
     config: AppConfig = ctx.obj["config"]
-    dry_run: bool = ctx.obj["dry_run"]
 
     if not config.youtube.enabled:
         click.echo("YouTube is not enabled. Set youtube.enabled: true in config.yaml.")
@@ -421,59 +535,7 @@ def youtube_sync(ctx: click.Context) -> None:
     client.authenticate()
 
     db = StateDB(config.data_dir / "state.db")
-
-    if not config.clips_dir.exists():
-        log.error("clips_dir_not_found", path=str(config.clips_dir))
-        sys.exit(1)
-
-    clips = [
-        f
-        for f in config.clips_dir.rglob("*")
-        if f.is_file() and f.suffix.lower() in config.extensions
-    ]
-
-    uploaded = skipped = 0
-
-    for clip in clips:
-        game_name = _resolve_game(clip.parent.name, config.game_name_map)
-        bound = log.bind(file=clip.name, game=game_name)
-        content_hash = compute_content_hash(clip)
-
-        if (
-            db.get_youtube_id_by_hash(content_hash) is not None
-            or db.get_youtube_id(clip) is not None
-        ):
-            skipped += 1
-            continue
-
-        if db.get_first_seen(clip) is None:
-            bound.debug("skipped_sync", reason="not_tagged")
-            continue
-
-        if dry_run:
-            bound.info("would_upload", file=clip.name)
-            continue
-
-        try:
-            video_id = client.upload(
-                clip,
-                game_name,
-                privacy=config.youtube.privacy,
-            )
-            db.mark_tagged(clip, game_name, content_hash)
-            db.mark_uploaded(clip, video_id)
-            uploaded += 1
-        except YouTubeQuotaExceededError as exc:
-            log.warning(
-                "youtube_quota_exceeded",
-                message="daily upload quota reached - remaining clips will be uploaded tomorrow",
-                detail=str(exc),
-            )
-            break
-        except Exception as exc:
-            bound.error("upload_failed", error=str(exc))
-
-    log.info("youtube_sync_complete", uploaded=uploaded, skipped=skipped)
+    _run_youtube_sync_pass(config, client, db, notifier=None, force=force)
 
 
 @main.command()
