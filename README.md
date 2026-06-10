@@ -228,7 +228,7 @@ youtube:
 
 > Set `upload_after_days` to a non-zero value if you want a review window before clips go public. `youtube-sync` bypasses this; use it to push a backlog on demand.
 
-**YouTube quota:** The free YouTube Data API quota is 10,000 units/day. Each upload costs ~1,600 units, so you can upload roughly 6 clips per day. When the quota is exhausted, ReplayTagger logs a `youtube_quota_exceeded` warning and stops uploading for the rest of the run - remaining clips will be picked up automatically next time `youtube-sync` or `watch` runs after midnight Pacific (when the quota resets). To increase the limit, request a quota increase at Google Cloud Console > APIs & Services > YouTube Data API v3 > Quotas.
+**YouTube quota:** The free YouTube Data API quota is 10,000 units/day. Each upload costs ~1,600 units, so you can upload roughly 6 clips per day. When the quota is exhausted, ReplayTagger records the timestamp and logs a `youtube_quota_exceeded` warning. The `watch` command runs an automatic daily sync pass at 3am local time (configurable via `YOUTUBE_SYNC_HOUR`) - remaining clips are uploaded automatically once the quota resets at midnight Pacific without any manual intervention. Running `youtube-sync` manually also skips automatically if the quota was exceeded today (Pacific time) and the window hasn't rolled over yet; use `youtube-sync --force` to override and attempt uploads immediately. To increase the limit, request a quota increase at Google Cloud Console > APIs & Services > YouTube Data API v3 > Quotas.
 
 #### Upload options
 
@@ -384,6 +384,7 @@ All settings can be configured via `.env`. Secrets must use env vars and never g
 | `YOUTUBE_AUTO_UPLOAD` | `true` to upload clips automatically as they arrive in watch mode |
 | `YOUTUBE_PRIVACY` | `private`, `unlisted`, or `public` |
 | `YOUTUBE_UPLOAD_AFTER_DAYS` | Override `upload_after_days` |
+| `YOUTUBE_SYNC_HOUR` | Hour (0-23 local time) for the daily YouTube sync pass in watch mode (default: `3`) |
 | `LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING` (default: `INFO`) |
 | `LOG_FORMAT` | `json` or `text` (default: `json`) |
 

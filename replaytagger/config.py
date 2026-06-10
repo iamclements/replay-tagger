@@ -25,6 +25,7 @@ class YouTubeConfig:
     auto_upload: bool = False
     privacy: str = "private"
     upload_after_days: int = 0
+    sync_hour: int = 3
     credentials_file: Path = Path("youtube_credentials.json")
     token_file: Path = Path("data/youtube_token.json")
 
@@ -132,6 +133,7 @@ def load_config(config_path: Path) -> AppConfig:
         auto_upload=_env_bool("YOUTUBE_AUTO_UPLOAD", youtube_data.get("auto_upload", False)),
         privacy=os.environ.get("YOUTUBE_PRIVACY", youtube_data.get("privacy", "private")),
         upload_after_days=yt_upload_after_days,
+        sync_hour=int(os.environ.get("YOUTUBE_SYNC_HOUR", youtube_data.get("sync_hour", 3))),
         credentials_file=Path(yt_credentials),
         token_file=Path(yt_token),
     )
