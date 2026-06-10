@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlparse
 
 import yaml
 
@@ -148,9 +149,13 @@ def load_config(config_path: Path) -> AppConfig:
     ]
     _env_webhook_url = os.environ.get("WEBHOOK_URL", "")
     if _env_webhook_url:
+        _parsed_webhook = urlparse(_env_webhook_url)
+        _is_discord = _parsed_webhook.hostname is not None and _parsed_webhook.hostname.endswith(
+            "discord.com"
+        )
         _env_webhook_type = os.environ.get(
             "WEBHOOK_TYPE",
-            "discord" if "discord.com" in _env_webhook_url else "generic",
+            "discord" if _is_discord else "generic",
         )
         _env_webhook_events_raw = os.environ.get("WEBHOOK_EVENTS", "scan_complete,error")
         _env_webhook_events = [e.strip() for e in _env_webhook_events_raw.split(",") if e.strip()]
