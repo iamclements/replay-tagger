@@ -150,9 +150,8 @@ def load_config(config_path: Path) -> AppConfig:
     _env_webhook_url = os.environ.get("WEBHOOK_URL", "")
     if _env_webhook_url:
         _parsed_webhook = urlparse(_env_webhook_url)
-        _is_discord = _parsed_webhook.hostname is not None and _parsed_webhook.hostname.endswith(
-            "discord.com"
-        )
+        _hostname = _parsed_webhook.hostname or ""
+        _is_discord = _hostname == "discord.com" or _hostname.endswith(".discord.com")
         _env_webhook_type = os.environ.get(
             "WEBHOOK_TYPE",
             "discord" if _is_discord else "generic",
