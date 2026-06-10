@@ -232,17 +232,20 @@ class YouTubeClient:
         file_path: Path,
         game_name: str,
         privacy: str = "private",
+        category_id: str = "20",
+        extra_tags: list[str] | None = None,
     ) -> str:
         """Upload a clip to YouTube. Returns the YouTube video ID."""
         if self._service is None:
             self.authenticate()
 
+        tags = [game_name] + (extra_tags if extra_tags is not None else ["gaming", "clips"])
         body = {
             "snippet": {
                 "title": file_path.stem,
                 "description": f"Game clip from {game_name}.",
-                "tags": [game_name, "gaming", "clips"],
-                "categoryId": "20",  # Gaming
+                "tags": tags,
+                "categoryId": category_id,
             },
             "status": {
                 "privacyStatus": privacy,

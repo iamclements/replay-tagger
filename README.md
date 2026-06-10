@@ -394,6 +394,8 @@ All settings can be configured via `.env`. Secrets must use env vars and never g
 | `YOUTUBE_PRIVACY` | `private`, `unlisted`, or `public` |
 | `YOUTUBE_UPLOAD_AFTER_DAYS` | Override `upload_after_days` |
 | `YOUTUBE_SYNC_HOUR` | Hour (0-23 local time) for the daily YouTube sync pass in watch mode (default: `3`) |
+| `YOUTUBE_CATEGORY_ID` | YouTube category ID for uploads (default: `20` - Gaming) |
+| `YOUTUBE_TAGS` | Comma-separated tags applied to every upload alongside the game name (default: `gaming,clips`) |
 | `GAME_NAME_MAP` | JSON map of folder names to game names, e.g. `'{"Apex Legends Season 20": "Apex Legends"}'`; merged with and overrides config.yaml entries |
 | `WEBHOOK_URL` | Webhook URL for notifications (Discord or generic HTTP); alternative to configuring webhooks in config.yaml |
 | `WEBHOOK_TYPE` | `discord` or `generic` (auto-detected from URL if not set) |
