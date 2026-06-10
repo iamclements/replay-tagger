@@ -138,16 +138,30 @@ def load_config(config_path: Path) -> AppConfig:
         token_file=Path(yt_token),
     )
 
-    notifications = NotificationsConfig(
-        webhooks=[
+    _yaml_webhooks = [
+        WebhookConfig(
+            url=wh["url"],
+            type=wh.get("type", "generic"),
+            events=wh.get("events", ["scan_complete", "error"]),
+        )
+        for wh in notif_data.get("webhooks", [])
+    ]
+    _env_webhook_url = os.environ.get("WEBHOOK_URL", "")
+    if _env_webhook_url:
+        _env_webhook_type = os.environ.get(
+            "WEBHOOK_TYPE",
+            "discord" if "discord.com" in _env_webhook_url else "generic",
+        )
+        _env_webhook_events_raw = os.environ.get("WEBHOOK_EVENTS", "scan_complete,error")
+        _env_webhook_events = [e.strip() for e in _env_webhook_events_raw.split(",") if e.strip()]
+        _yaml_webhooks.append(
             WebhookConfig(
-                url=wh["url"],
-                type=wh.get("type", "generic"),
-                events=wh.get("events", ["scan_complete", "error"]),
+                url=_env_webhook_url,
+                type=_env_webhook_type,
+                events=_env_webhook_events,
             )
-            for wh in notif_data.get("webhooks", [])
-        ]
-    )
+        )
+    notifications = NotificationsConfig(webhooks=_yaml_webhooks)
 
     debounce_seconds = int(os.environ.get("DEBOUNCE_SECONDS", data.get("debounce_seconds", 10)))
 
