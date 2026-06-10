@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -172,6 +173,21 @@ def load_config(config_path: Path) -> AppConfig:
     _temp_dir_raw = os.environ.get("FFMPEG_TEMP_DIR", data.get("ffmpeg_temp_dir"))
     ffmpeg_temp_dir = Path(_temp_dir_raw) if _temp_dir_raw else None
 
+    def _build_game_name_map(yaml_map: dict[str, str]) -> dict[str, str]:
+        merged = dict(yaml_map)
+        _env_raw = os.environ.get("GAME_NAME_MAP", "")
+        if _env_raw:
+            try:
+                env_map = json.loads(_env_raw)
+                if isinstance(env_map, dict):
+                    merged.update(env_map)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"GAME_NAME_MAP is not valid JSON: {exc}\n"
+                    'Expected format: \'{"Folder Name": "Game Name", ...}\''
+                ) from exc
+        return merged
+
     return AppConfig(
         clips_dir=clips_dir,
         extensions=data.get("extensions", [".mp4", ".mkv", ".mov"]),
@@ -180,7 +196,7 @@ def load_config(config_path: Path) -> AppConfig:
         ffprobe_path=data.get("ffprobe_path", "ffprobe"),
         ffmpeg_temp_dir=ffmpeg_temp_dir,
         debounce_seconds=debounce_seconds,
-        game_name_map=data.get("game_name_map", {}),
+        game_name_map=_build_game_name_map(data.get("game_name_map", {})),
         plex=plex,
         youtube=youtube,
         logging=LoggingConfig(level=log_level, format=log_format),
