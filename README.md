@@ -244,6 +244,15 @@ youtube:
 
 ReplayTagger can send webhook notifications to Discord or any generic HTTP endpoint when clips are tagged, uploaded, or when errors occur.
 
+For a single webhook, set `WEBHOOK_URL` in `.env` - no config.yaml needed:
+
+```bash
+WEBHOOK_URL=https://discord.com/api/webhooks/SERVER_ID/TOKEN
+WEBHOOK_EVENTS=scan_complete,error  # optional, these are the defaults
+```
+
+For multiple webhooks or per-webhook event filtering, use config.yaml:
+
 ```yaml
 notifications:
   webhooks:
@@ -385,6 +394,9 @@ All settings can be configured via `.env`. Secrets must use env vars and never g
 | `YOUTUBE_PRIVACY` | `private`, `unlisted`, or `public` |
 | `YOUTUBE_UPLOAD_AFTER_DAYS` | Override `upload_after_days` |
 | `YOUTUBE_SYNC_HOUR` | Hour (0-23 local time) for the daily YouTube sync pass in watch mode (default: `3`) |
+| `WEBHOOK_URL` | Webhook URL for notifications (Discord or generic HTTP); alternative to configuring webhooks in config.yaml |
+| `WEBHOOK_TYPE` | `discord` or `generic` (auto-detected from URL if not set) |
+| `WEBHOOK_EVENTS` | Comma-separated event list for the env-var webhook (default: `scan_complete,error`) |
 | `LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING` (default: `INFO`) |
 | `LOG_FORMAT` | `json` or `text` (default: `json`) |
 

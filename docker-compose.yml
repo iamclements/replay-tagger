@@ -20,12 +20,15 @@ services:
       - YOUTUBE_AUTO_UPLOAD=${YOUTUBE_AUTO_UPLOAD:-false}
       - YOUTUBE_UPLOAD_AFTER_DAYS=${YOUTUBE_UPLOAD_AFTER_DAYS:-0}
       - DEBOUNCE_SECONDS=${DEBOUNCE_SECONDS:-10}
+      - WEBHOOK_URL=${WEBHOOK_URL:-}
+      - WEBHOOK_TYPE=${WEBHOOK_TYPE:-}
+      - WEBHOOK_EVENTS=${WEBHOOK_EVENTS:-scan_complete,error}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - LOG_FORMAT=${LOG_FORMAT:-json}
     volumes:
       - ${CLIPS_DIR:-./clips}:/clips
       - ./data:/app/data
-      # Uncomment to use config.yaml (required for game_name_map and webhooks)
+      # Uncomment to use config.yaml (required for game_name_map or multiple webhooks)
       # - ./config.yaml:/app/config.yaml:ro
     restart: unless-stopped
     healthcheck:
