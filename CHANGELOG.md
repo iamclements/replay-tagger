@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-06-10
+
+### Added
+- YouTube upload quota persistence: when the daily quota is exhausted, the timestamp is stored in the SQLite state database. The `watch` command runs an automatic sync pass once per day at a configurable hour (`YOUTUBE_SYNC_HOUR`, default 3am local) so uploads resume after the quota resets at midnight Pacific without manual intervention.
+- `youtube-sync --force` flag: bypasses the quota cooldown check and attempts uploads immediately regardless of when the quota was last exceeded.
+- `WEBHOOK_URL`, `WEBHOOK_TYPE`, and `WEBHOOK_EVENTS` env vars: configure a single notification webhook without editing `config.yaml`. Type is auto-detected from the URL (discord.com hostname). For multiple webhooks, config.yaml is still supported and env var webhook is appended.
+- `GAME_NAME_MAP` env var: JSON string mapping clip folder names to canonical game names (e.g. `'{"Apex Legends Season 20": "Apex Legends"}'`). Merged with and takes precedence over config.yaml `game_name_map`.
+- `YOUTUBE_CATEGORY_ID` env var and `category_id` config key: sets the YouTube category for uploaded clips (default: `20` - Gaming).
+- `YOUTUBE_TAGS` env var and `tags` config key: comma-separated list of tags applied to every upload alongside the game name (default: `gaming,clips`).
+
+### Fixed
+- `youtube-sync` no longer retries on the same quota-exceeded day: after a 429, subsequent calls skip automatically until the Pacific calendar date advances. Use `--force` to override.
+
 ## [2.5.0] - 2026-06-09
 
 ### Added
