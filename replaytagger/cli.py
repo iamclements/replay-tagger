@@ -148,7 +148,13 @@ def _upload_file(
             )
             return
     try:
-        video_id = youtube.upload(file_path, game_name, privacy=config.youtube.privacy)
+        video_id = youtube.upload(
+            file_path,
+            game_name,
+            privacy=config.youtube.privacy,
+            category_id=config.youtube.category_id,
+            extra_tags=config.youtube.tags,
+        )
         db.mark_uploaded(file_path, video_id)
         if notifier:
             from replaytagger.notifications import NotifyEvent
@@ -229,7 +235,13 @@ def _run_youtube_sync_pass(
                 continue
 
         try:
-            video_id = youtube.upload(clip, game_name, privacy=config.youtube.privacy)
+            video_id = youtube.upload(
+                clip,
+                game_name,
+                privacy=config.youtube.privacy,
+                category_id=config.youtube.category_id,
+                extra_tags=config.youtube.tags,
+            )
             db.mark_tagged(clip, game_name, content_hash)
             db.mark_uploaded(clip, video_id)
             db.clear_quota_state()
@@ -574,6 +586,8 @@ def upload(ctx: click.Context, file: Path, privacy: str | None) -> None:
         file,
         game_name,
         privacy=effective_privacy,
+        category_id=config.youtube.category_id,
+        extra_tags=config.youtube.tags,
     )
     # Ensure row exists with hash so future dedup checks work
     db.mark_tagged(file, game_name, content_hash)
