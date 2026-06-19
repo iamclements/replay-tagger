@@ -175,6 +175,35 @@ def test_retag_dry_run(runner: CliRunner, tmp_path: Path) -> None:
     mock_tagger.tag.assert_called_once_with(clip, "Apex Legends", dry_run=True, force=True)
 
 
+# ── init ──────────────────────────────────────────────────────────────────────
+
+
+def test_init_creates_config(runner: CliRunner, tmp_path: Path) -> None:
+    target = tmp_path / "config.yaml"
+    result = runner.invoke(main, ["--config", str(target), "init"])
+    assert result.exit_code == 0
+    assert target.exists()
+    assert "Next steps" in result.output
+
+
+def test_init_refuses_existing_without_force(runner: CliRunner, tmp_path: Path) -> None:
+    target = tmp_path / "config.yaml"
+    target.write_text("clips_dir: /custom\n")
+    result = runner.invoke(main, ["--config", str(target), "init"])
+    assert result.exit_code == 1
+    assert "already exists" in result.output
+    # The existing file is left untouched.
+    assert target.read_text() == "clips_dir: /custom\n"
+
+
+def test_init_force_overwrites(runner: CliRunner, tmp_path: Path) -> None:
+    target = tmp_path / "config.yaml"
+    target.write_text("clips_dir: /custom\n")
+    result = runner.invoke(main, ["--config", str(target), "init", "--force"])
+    assert result.exit_code == 0
+    assert target.read_text() != "clips_dir: /custom\n"
+
+
 # ── status ────────────────────────────────────────────────────────────────────
 
 

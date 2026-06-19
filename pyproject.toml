@@ -36,6 +36,11 @@ replaytagger = "replaytagger.cli:main"
 [tool.hatch.build.targets.wheel]
 packages = ["replaytagger"]
 
+# Bundle the example config so `replaytagger init` can write a starter config.yaml
+# even in the Docker image, where the repo-root copy is not present.
+[tool.hatch.build.targets.wheel.force-include]
+"config.yaml.example" = "replaytagger/config.yaml.example"
+
 [tool.ruff]
 target-version = "py311"
 line-length = 100

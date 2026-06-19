@@ -393,10 +393,48 @@ def main(ctx: click.Context, config_path: Path, dry_run: bool) -> None:
     rt_logging.configure(cfg.logging.level, cfg.logging.format)
     # Auth commands obtain credentials; skip validation so they can run before
     # a token exists even when plex.enabled or youtube.enabled is already set.
-    if ctx.invoked_subcommand not in ("plex-auth", "youtube-auth", "doctor", "retag", "config"):
+    # init writes the starter config, so it must run before one is valid.
+    skip_validation = ("plex-auth", "youtube-auth", "doctor", "retag", "config", "init")
+    if ctx.invoked_subcommand not in skip_validation:
         _validate_config(cfg)
     ctx.obj["config"] = cfg
+    ctx.obj["config_path"] = config_path
     ctx.obj["dry_run"] = dry_run
+
+
+def _config_template_path() -> Path | None:
+    """Locate the bundled config.yaml.example, whether installed or run from source."""
+    candidates = [
+        Path(__file__).with_name("config.yaml.example"),  # force-included in the wheel
+        Path(__file__).resolve().parent.parent / "config.yaml.example",  # source checkout
+    ]
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return None
+
+
+@main.command()
+@click.option("--force", is_flag=True, help="Overwrite config.yaml if it already exists")
+@click.pass_context
+def init(ctx: click.Context, force: bool) -> None:
+    """Write a starter config.yaml from the bundled example template."""
+    target: Path = ctx.obj["config_path"]
+    if target.exists() and not force:
+        click.echo(f"{target} already exists; pass --force to overwrite.", err=True)
+        sys.exit(1)
+
+    template = _config_template_path()
+    if template is None:
+        click.echo("Could not locate the bundled config.yaml.example template.", err=True)
+        sys.exit(1)
+
+    target.write_text(template.read_text())
+    click.echo(f"Wrote {target}")
+    click.echo("\nNext steps:")
+    click.echo("  1. Edit config.yaml (or set env vars) for your Plex URL, token, and library")
+    click.echo("  2. Run: replaytagger doctor   to verify connectivity and paths")
+    click.echo("  3. Run: replaytagger run      to tag clips (or watch to run continuously)")
 
 
 @main.command()

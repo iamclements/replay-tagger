@@ -420,6 +420,7 @@ All settings can be configured via `.env`. Secrets must use env vars and never g
 replaytagger [--config PATH] [--dry-run] COMMAND
 
 Commands:
+  init           Write a starter config.yaml from the bundled example
   run            Scan all clips once, tag untagged files, then exit
   watch          Watch for new clips and process them as they arrive
   retag FILE     Force-retag a single clip, overriding any existing genre tag
@@ -434,6 +435,9 @@ Commands:
 ```
 
 ```bash
+# Write a starter config.yaml (refuses to clobber an existing one without --force)
+replaytagger init
+
 # Preview what would be tagged without changing anything
 replaytagger --dry-run run
 
