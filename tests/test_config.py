@@ -63,3 +63,23 @@ def test_extensions_loaded_from_config(tmp_path: Path) -> None:
     p = _write_config(tmp_path, {"extensions": [".mp4", ".avi"]})
     cfg = load_config(p)
     assert cfg.extensions == [".mp4", ".avi"]
+
+
+def test_ntfy_webhook_autodetected_from_env(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    p = tmp_path / "missing.yaml"
+    monkeypatch.setenv("WEBHOOK_URL", "https://ntfy.sh/replaytagger-alerts")
+    cfg = load_config(p)
+    assert len(cfg.notifications.webhooks) == 1
+    assert cfg.notifications.webhooks[0].type == "ntfy"
+
+
+def test_webhook_type_env_overrides_autodetect(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    p = tmp_path / "missing.yaml"
+    monkeypatch.setenv("WEBHOOK_URL", "https://ntfy.sh/topic")
+    monkeypatch.setenv("WEBHOOK_TYPE", "generic")
+    cfg = load_config(p)
+    assert cfg.notifications.webhooks[0].type == "generic"

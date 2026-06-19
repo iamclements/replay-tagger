@@ -94,11 +94,27 @@ def test_http_error_logs_warning_does_not_raise(mock_post):
 @patch("replaytagger.notifications.requests.post")
 def test_unknown_type_falls_back_to_generic(mock_post):
     mock_post.return_value.raise_for_status = MagicMock()
-    wh = WebhookConfig(url="https://example.com", type="ntfy", events=["scan_complete"])
+    wh = WebhookConfig(url="https://example.com", type="slack", events=["scan_complete"])
     client = NotificationClient([wh])
     client.notify(NotifyEvent.SCAN_COMPLETE, tagged=0)
     payload = mock_post.call_args.kwargs["json"]
     assert payload["event"] == "scan_complete"
+
+
+@patch("replaytagger.notifications.requests.post")
+def test_ntfy_posts_plaintext_with_title(mock_post):
+    mock_post.return_value.raise_for_status = MagicMock()
+    wh = WebhookConfig(url="https://ntfy.sh/my-topic", type="ntfy", events=["scan_complete"])
+    client = NotificationClient([wh])
+    client.notify(NotifyEvent.SCAN_COMPLETE, tagged=2, total=5)
+    mock_post.assert_called_once()
+    # ntfy uses a plaintext body, not a JSON payload.
+    assert "json" not in mock_post.call_args.kwargs
+    body = mock_post.call_args.kwargs["data"].decode("utf-8")
+    assert "tagged: 2" in body
+    assert "total: 5" in body
+    headers = mock_post.call_args.kwargs["headers"]
+    assert headers["Title"] == "ReplayTagger: Scan Complete"
 
 
 @patch("replaytagger.notifications.requests.post")
