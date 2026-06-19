@@ -7,7 +7,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from replaytagger.notifications import NotificationClient
 
 import structlog
 from google.auth.exceptions import RefreshError
@@ -234,6 +237,7 @@ class YouTubeClient:
         privacy: str = "private",
         category_id: str = "20",
         extra_tags: list[str] | None = None,
+        notifier: NotificationClient | None = None,
     ) -> str:
         """Upload a clip to YouTube. Returns the YouTube video ID."""
         if self._service is None:
@@ -266,6 +270,30 @@ class YouTubeClient:
                 part=",".join(body.keys()), body=body, media_body=media
             )
 
+            response = None
+            while response is None:
+                _, response = request.next_chunk()
+        except RefreshError as exc:
+            log.warning(
+                "youtube_token_revoked",
+                error=str(exc),
+                action="re-authenticating and retrying upload",
+            )
+            if notifier is not None:
+                from replaytagger.notifications import NotifyEvent
+
+                notifier.notify(
+                    NotifyEvent.ERROR,
+                    message="YouTube token revoked - re-authorization required",
+                    file=file_path.name,
+                )
+            if self.token_file.exists():
+                self.token_file.unlink()
+            self._service = None
+            self.authenticate()
+            request = self._service.videos().insert(
+                part=",".join(body.keys()), body=body, media_body=media
+            )
             response = None
             while response is None:
                 _, response = request.next_chunk()
