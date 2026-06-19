@@ -92,6 +92,31 @@ def test_doctor_skips_plex_when_disabled(runner: CliRunner, tmp_path: Path) -> N
     assert "plex" in result.output
 
 
+def test_doctor_fails_cleanly_on_malformed_yaml(runner: CliRunner, tmp_path: Path) -> None:
+    cfg = tmp_path / "config.yaml"
+    cfg.write_text("clips_dir: [unclosed\n")  # invalid YAML
+    result = runner.invoke(main, ["--config", str(cfg), "doctor"])
+    assert result.exit_code == 1
+    assert "FAIL" in result.output
+    assert "not valid YAML" in result.output
+    # No Python traceback leaks to the user.
+    assert "Traceback" not in result.output
+
+
+def test_doctor_reports_ffmpeg_version(runner: CliRunner, tmp_path: Path) -> None:
+    cfg, clips_dir, _ = _make_config(tmp_path)
+    _fake_clip(clips_dir)
+    fake_proc = MagicMock()
+    fake_proc.stdout = "ffmpeg version 6.1.1 Copyright (c) 2000-2023 the FFmpeg developers\n"
+    with (
+        patch("shutil.which", return_value="/usr/bin/ffmpeg"),
+        patch("subprocess.run", return_value=fake_proc),
+    ):
+        result = runner.invoke(main, ["--config", str(cfg), "doctor"])
+    assert result.exit_code == 0
+    assert "6.1.1" in result.output
+
+
 # ── run ───────────────────────────────────────────────────────────────────────
 
 
