@@ -16,7 +16,7 @@ None of these files are ever committed to the repository. `.env`, `data/`, and c
 
 Do not open a public issue for security vulnerabilities.
 
-Email **iam.dclements@proton.me** with:
+Email **contact@replaytagger.com** with:
 - A description of the vulnerability
 - Steps to reproduce
 - Potential impact
