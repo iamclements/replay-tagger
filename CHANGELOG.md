@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-06-18
+
+### Added
+- `config show` command: prints the effective merged configuration (env vars over `config.yaml` over defaults) with secrets (Plex token, SteamGridDB key, webhook URLs) redacted to `***`, so the output is safe to paste into a bug report.
+- `init` command: writes a starter `config.yaml` from the bundled example template and prints the next setup steps; refuses to overwrite an existing file without `--force`.
+- `status` now reports a pending YouTube upload count (tagged clips with no `youtube_id` past the `upload_after_days` window) and, when the daily quota has been recorded as exceeded, a reset line showing the midnight-Pacific reset and the next scheduled sync hour.
+- ntfy notification type: POSTs a plaintext body with the event details and a `Title` header to a topic URL. Auto-detected from `ntfy.sh` hostnames in the `WEBHOOK_URL` env-var path, the same way Discord is detected.
+- `doctor` reports the `ffmpeg` and `ffprobe` versions on their OK lines.
+
+### Changed
+- `doctor` and all other commands now fail with a clean one-line message when `config.yaml` is not valid YAML, instead of dumping a Python traceback (`init` still runs so it can overwrite a broken file).
+
 ## [2.6.0] - 2026-06-10
 
 ### Added
