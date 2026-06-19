@@ -7,7 +7,10 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from replaytagger.notifications import NotificationClient
 
 import structlog
 from google.auth.exceptions import RefreshError
@@ -234,7 +237,7 @@ class YouTubeClient:
         privacy: str = "private",
         category_id: str = "20",
         extra_tags: list[str] | None = None,
-        notifier: object = None,
+        notifier: NotificationClient | None = None,
     ) -> str:
         """Upload a clip to YouTube. Returns the YouTube video ID."""
         if self._service is None:
@@ -279,7 +282,7 @@ class YouTubeClient:
             if notifier is not None:
                 from replaytagger.notifications import NotifyEvent
 
-                notifier.notify(  # type: ignore[union-attr]
+                notifier.notify(
                     NotifyEvent.ERROR,
                     message="YouTube token revoked - re-authorization required",
                     file=file_path.name,
