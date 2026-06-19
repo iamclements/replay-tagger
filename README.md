@@ -430,6 +430,7 @@ Commands:
   youtube-sync   Upload all tagged clips that have passed upload_after_days
   upload FILE    Upload a single clip to YouTube
   status         Show tagging and upload counts, last activity, and per-game breakdown
+  config show    Print the effective merged config with secrets redacted
 ```
 
 ```bash
@@ -447,6 +448,9 @@ replaytagger upload "clips/Apex Legends/clip1.mp4" --privacy unlisted
 
 # Check tagging and upload counts
 replaytagger status
+
+# Inspect the resolved config (env vars + config.yaml merged), secrets masked
+replaytagger config show
 ```
 
 ---
