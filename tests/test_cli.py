@@ -185,6 +185,42 @@ def test_status_empty_db(runner: CliRunner, tmp_path: Path) -> None:
     assert "Tagged clips : 0" in result.output
 
 
+# ── config show ─────────────────────────────────────────────────────────────
+
+
+def test_config_show_redacts_plex_token(runner: CliRunner, tmp_path: Path) -> None:
+    cfg, _, _ = _make_config(
+        tmp_path,
+        {"plex": {"enabled": True, "token": "super-secret-token", "url": "http://plex:32400"}},
+    )
+    result = runner.invoke(main, ["--config", str(cfg), "config", "show"])
+    assert result.exit_code == 0
+    assert "super-secret-token" not in result.output
+    assert "token" in result.output
+    assert "***" in result.output
+    # Non-secret values are shown in full.
+    assert "http://plex:32400" in result.output
+
+
+def test_config_show_redacts_env_secrets(
+    runner: CliRunner, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cfg, _, _ = _make_config(tmp_path)
+    monkeypatch.setenv("STEAMGRIDDB_API_KEY", "sgdb-key-123")
+    monkeypatch.setenv("WEBHOOK_URL", "https://discord.com/api/webhooks/abc/def")
+    result = runner.invoke(main, ["--config", str(cfg), "config", "show"])
+    assert result.exit_code == 0
+    assert "sgdb-key-123" not in result.output
+    assert "discord.com/api/webhooks/abc/def" not in result.output
+
+
+def test_config_show_unset_secret_renders_not_set(runner: CliRunner, tmp_path: Path) -> None:
+    cfg, _, _ = _make_config(tmp_path)
+    result = runner.invoke(main, ["--config", str(cfg), "config", "show"])
+    assert result.exit_code == 0
+    assert "(not set)" in result.output
+
+
 # ── health ────────────────────────────────────────────────────────────────────
 
 

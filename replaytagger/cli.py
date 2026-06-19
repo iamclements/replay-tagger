@@ -393,7 +393,7 @@ def main(ctx: click.Context, config_path: Path, dry_run: bool) -> None:
     rt_logging.configure(cfg.logging.level, cfg.logging.format)
     # Auth commands obtain credentials; skip validation so they can run before
     # a token exists even when plex.enabled or youtube.enabled is already set.
-    if ctx.invoked_subcommand not in ("plex-auth", "youtube-auth", "doctor", "retag"):
+    if ctx.invoked_subcommand not in ("plex-auth", "youtube-auth", "doctor", "retag", "config"):
         _validate_config(cfg)
     ctx.obj["config"] = cfg
     ctx.obj["dry_run"] = dry_run
@@ -622,6 +622,77 @@ def status(ctx: click.Context) -> None:
             click.echo(
                 f"  {str(row['game_name']):<{name_w}}  {row['clips']:>5}  {row['uploaded']:>8}"
             )
+
+
+def _redact(value: str) -> str:
+    """Mask a secret for display: show *** if set, (not set) otherwise."""
+    return "***" if value else "(not set)"
+
+
+@main.group()
+def config() -> None:
+    """Inspect ReplayTagger configuration."""
+
+
+@config.command("show")
+@click.pass_context
+def config_show(ctx: click.Context) -> None:
+    """Print the effective merged configuration with secrets redacted.
+
+    Values reflect the final result after layering env vars over config.yaml
+    over built-in defaults. Secrets (Plex token, SteamGridDB key, webhook URLs)
+    are shown as *** so the output is safe to paste into a bug report.
+    """
+    cfg: AppConfig = ctx.obj["config"]
+
+    def section(title: str) -> None:
+        click.echo(click.style(f"\n[{title}]", bold=True))
+
+    def line(label: str, value: object) -> None:
+        click.echo(f"  {label:<22} {value}")
+
+    section("general")
+    line("clips_dir", cfg.clips_dir)
+    line("data_dir", cfg.data_dir)
+    line("extensions", ", ".join(cfg.extensions))
+    line("ffmpeg_path", cfg.ffmpeg_path)
+    line("ffprobe_path", cfg.ffprobe_path)
+    line("ffmpeg_temp_dir", cfg.ffmpeg_temp_dir or "(system default)")
+    line("debounce_seconds", cfg.debounce_seconds)
+    line("steamgriddb_api_key", _redact(cfg.steamgriddb_api_key or ""))
+    line("game_name_map", f"{len(cfg.game_name_map)} mapping(s)")
+
+    section("plex")
+    line("enabled", cfg.plex.enabled)
+    line("url", cfg.plex.url)
+    line("token", _redact(cfg.plex.token))
+    line("library_name", cfg.plex.library_name)
+    line("auto_scan", cfg.plex.auto_scan)
+    line("auto_create_collections", cfg.plex.auto_create_collections)
+    line("verify_ssl", cfg.plex.verify_ssl)
+
+    section("youtube")
+    line("enabled", cfg.youtube.enabled)
+    line("auto_upload", cfg.youtube.auto_upload)
+    line("privacy", cfg.youtube.privacy)
+    line("upload_after_days", cfg.youtube.upload_after_days)
+    line("sync_hour", cfg.youtube.sync_hour)
+    line("category_id", cfg.youtube.category_id)
+    line("tags", ", ".join(cfg.youtube.tags))
+    line("credentials_file", cfg.youtube.credentials_file)
+    line("token_file", cfg.youtube.token_file)
+
+    section("logging")
+    line("level", cfg.logging.level)
+    line("format", cfg.logging.format)
+
+    section("notifications")
+    if not cfg.notifications.webhooks:
+        line("webhooks", "(none)")
+    for i, wh in enumerate(cfg.notifications.webhooks, 1):
+        line(f"webhook {i} type", wh.type)
+        line(f"webhook {i} url", _redact(wh.url))
+        line(f"webhook {i} events", ", ".join(wh.events))
 
 
 @main.command()
