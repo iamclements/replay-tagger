@@ -69,6 +69,20 @@ class AppConfig:
     steamgriddb_api_key: str | None = None
 
 
+def _env_str(env_key: str, source: dict[str, Any], key: str, default: str) -> str:
+    """Env var wins, then config.yaml value, then the built-in default."""
+    return str(os.environ.get(env_key, source.get(key, default)))
+
+
+def _env_int(env_key: str, source: dict[str, Any], key: str, default: int) -> int:
+    return int(os.environ.get(env_key, source.get(key, default)))
+
+
+def _env_bool(env_key: str, source: dict[str, Any], key: str, default: bool) -> bool:
+    v = os.environ.get(env_key, "").lower()
+    return True if v == "true" else False if v == "false" else bool(source.get(key, default))
+
+
 def load_config(config_path: Path) -> AppConfig:
     data: dict[str, Any] = {}
     if config_path.exists():
@@ -81,9 +95,8 @@ def load_config(config_path: Path) -> AppConfig:
     notif_data = data.get("notifications", {})
 
     # Environment variables override config file values; secrets never go in config.yaml
-    clips_dir = Path(os.environ.get("CLIPS_DIR", data.get("clips_dir", "/clips")))
-    data_dir = Path(os.environ.get("DATA_DIR", data.get("data_dir", "data")))
-    plex_url = os.environ.get("PLEX_URL", plex_data.get("url", "http://localhost:32400"))
+    clips_dir = Path(_env_str("CLIPS_DIR", data, "clips_dir", "/clips"))
+    data_dir = Path(_env_str("DATA_DIR", data, "data_dir", "data"))
     _verify_ssl_env = os.environ.get("PLEX_VERIFY_SSL", "").lower()
     plex_verify_ssl = False if _verify_ssl_env == "false" else plex_data.get("verify_ssl", True)
 
@@ -93,44 +106,21 @@ def load_config(config_path: Path) -> AppConfig:
         _token_file = data_dir / "plex_token"
         if _token_file.exists():
             plex_token = _token_file.read_text().strip()
-    log_level = os.environ.get("LOG_LEVEL", logging_data.get("level", "INFO"))
-    log_format = os.environ.get("LOG_FORMAT", logging_data.get("format", "json"))
-
-    def _env_bool(env_key: str, config_val: bool) -> bool:
-        v = os.environ.get(env_key, "").lower()
-        return True if v == "true" else False if v == "false" else config_val
 
     plex = PlexConfig(
-        enabled=_env_bool("PLEX_ENABLED", plex_data.get("enabled", False)),
-        url=plex_url,
+        enabled=_env_bool("PLEX_ENABLED", plex_data, "enabled", False),
+        url=_env_str("PLEX_URL", plex_data, "url", "http://localhost:32400"),
         token=plex_token,
-        library_name=os.environ.get(
-            "PLEX_LIBRARY_NAME", plex_data.get("library_name", "Game Clips")
-        ),
-        auto_scan=_env_bool("PLEX_AUTO_SCAN", plex_data.get("auto_scan", True)),
+        library_name=_env_str("PLEX_LIBRARY_NAME", plex_data, "library_name", "Game Clips"),
+        auto_scan=_env_bool("PLEX_AUTO_SCAN", plex_data, "auto_scan", True),
         auto_create_collections=_env_bool(
-            "PLEX_AUTO_COLLECTIONS", plex_data.get("auto_create_collections", True)
+            "PLEX_AUTO_COLLECTIONS", plex_data, "auto_create_collections", True
         ),
         verify_ssl=plex_verify_ssl,
     )
 
     yt_credentials = youtube_data.get("credentials_file", "youtube_credentials.json")
     yt_token = youtube_data.get("token_file", "data/youtube_token.json")
-    yt_upload_after_days = int(
-        os.environ.get(
-            "YOUTUBE_UPLOAD_AFTER_DAYS",
-            youtube_data.get("upload_after_days", 0),
-        )
-    )
-
-    _yt_enabled_env = os.environ.get("YOUTUBE_ENABLED", "").lower()
-    yt_enabled = (
-        True
-        if _yt_enabled_env == "true"
-        else False
-        if _yt_enabled_env == "false"
-        else youtube_data.get("enabled", False)
-    )
 
     _yt_tags_raw = os.environ.get("YOUTUBE_TAGS", "")
     yt_tags: list[str] = (
@@ -140,14 +130,14 @@ def load_config(config_path: Path) -> AppConfig:
     )
 
     youtube = YouTubeConfig(
-        enabled=yt_enabled,
-        auto_upload=_env_bool("YOUTUBE_AUTO_UPLOAD", youtube_data.get("auto_upload", False)),
-        privacy=os.environ.get("YOUTUBE_PRIVACY", youtube_data.get("privacy", "private")),
-        upload_after_days=yt_upload_after_days,
-        sync_hour=int(os.environ.get("YOUTUBE_SYNC_HOUR", youtube_data.get("sync_hour", 3))),
-        category_id=os.environ.get(
-            "YOUTUBE_CATEGORY_ID", str(youtube_data.get("category_id", "20"))
+        enabled=_env_bool("YOUTUBE_ENABLED", youtube_data, "enabled", False),
+        auto_upload=_env_bool("YOUTUBE_AUTO_UPLOAD", youtube_data, "auto_upload", False),
+        privacy=_env_str("YOUTUBE_PRIVACY", youtube_data, "privacy", "private"),
+        upload_after_days=_env_int(
+            "YOUTUBE_UPLOAD_AFTER_DAYS", youtube_data, "upload_after_days", 0
         ),
+        sync_hour=_env_int("YOUTUBE_SYNC_HOUR", youtube_data, "sync_hour", 3),
+        category_id=_env_str("YOUTUBE_CATEGORY_ID", youtube_data, "category_id", "20"),
         tags=yt_tags,
         credentials_file=Path(yt_credentials),
         token_file=Path(yt_token),
@@ -181,7 +171,7 @@ def load_config(config_path: Path) -> AppConfig:
         )
     notifications = NotificationsConfig(webhooks=_yaml_webhooks)
 
-    debounce_seconds = int(os.environ.get("DEBOUNCE_SECONDS", data.get("debounce_seconds", 10)))
+    debounce_seconds = _env_int("DEBOUNCE_SECONDS", data, "debounce_seconds", 10)
 
     _temp_dir_raw = os.environ.get("FFMPEG_TEMP_DIR", data.get("ffmpeg_temp_dir"))
     ffmpeg_temp_dir = Path(_temp_dir_raw) if _temp_dir_raw else None
@@ -212,7 +202,10 @@ def load_config(config_path: Path) -> AppConfig:
         game_name_map=_build_game_name_map(data.get("game_name_map", {})),
         plex=plex,
         youtube=youtube,
-        logging=LoggingConfig(level=log_level, format=log_format),
+        logging=LoggingConfig(
+            level=_env_str("LOG_LEVEL", logging_data, "level", "INFO"),
+            format=_env_str("LOG_FORMAT", logging_data, "format", "json"),
+        ),
         notifications=notifications,
         steamgriddb_api_key=os.environ.get("STEAMGRIDDB_API_KEY") or None,
     )
