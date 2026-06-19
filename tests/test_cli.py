@@ -183,6 +183,31 @@ def test_status_empty_db(runner: CliRunner, tmp_path: Path) -> None:
     result = runner.invoke(main, ["--config", str(cfg), "status"])
     assert result.exit_code == 0
     assert "Tagged clips : 0" in result.output
+    assert "YT pending   : 0" in result.output
+    # No quota line when the quota has never been exceeded.
+    assert "quota" not in result.output
+
+
+def test_status_counts_pending_uploads(runner: CliRunner, tmp_path: Path) -> None:
+    cfg, clips_dir, data_dir = _make_config(tmp_path)
+    clip = _fake_clip(clips_dir)
+    db = StateDB(data_dir / "state.db")
+    db.mark_tagged(clip, "Apex Legends", "abc123")
+    result = runner.invoke(main, ["--config", str(cfg), "status"])
+    assert result.exit_code == 0
+    assert "YT pending   : 1" in result.output
+
+
+def test_status_shows_quota_reset_line(runner: CliRunner, tmp_path: Path) -> None:
+    from datetime import UTC, datetime
+
+    cfg, _, data_dir = _make_config(tmp_path)
+    db = StateDB(data_dir / "state.db")
+    db.set_quota_exceeded(datetime.now(UTC))
+    result = runner.invoke(main, ["--config", str(cfg), "status"])
+    assert result.exit_code == 0
+    assert "exceeded, resets midnight Pacific" in result.output
+    assert "next sync 03:00" in result.output
 
 
 # ── config show ─────────────────────────────────────────────────────────────

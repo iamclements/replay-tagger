@@ -62,6 +62,19 @@ def test_stats_counts_correctly(db: StateDB, tmp_path: Path) -> None:
     assert stats["total_uploaded"] == 1
 
 
+def test_pending_uploads_counts_unuploaded(db: StateDB, clip: Path) -> None:
+    db.mark_tagged(clip, "Apex Legends")
+    assert db.pending_uploads(0) == 1
+    db.mark_uploaded(clip, "vid123")
+    assert db.pending_uploads(0) == 0
+
+
+def test_pending_uploads_defers_recent_clips(db: StateDB, clip: Path) -> None:
+    db.mark_tagged(clip, "Apex Legends")
+    # Just-tagged clip is younger than the 7-day window, so it is not pending yet.
+    assert db.pending_uploads(7) == 0
+
+
 def test_last_tagged_returns_none_when_empty(db: StateDB) -> None:
     assert db.last_tagged() is None
 
