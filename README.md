@@ -429,7 +429,7 @@ Commands:
   youtube-auth   Authorize YouTube via device flow (URL + code, no browser needed)
   youtube-sync   Upload all tagged clips that have passed upload_after_days
   upload FILE    Upload a single clip to YouTube
-  status         Show tagging and upload counts, last activity, and per-game breakdown
+  status         Show tagging/upload counts, pending uploads, quota state, and per-game breakdown
   config show    Print the effective merged config with secrets redacted
 ```
 

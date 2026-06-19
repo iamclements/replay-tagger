@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sqlite3
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 
@@ -129,6 +129,23 @@ class StateDB:
                 "SELECT COUNT(*) FROM processed_files WHERE youtube_id IS NOT NULL"
             ).fetchone()[0]
         return {"total_tagged": total, "total_uploaded": uploaded}
+
+    def pending_uploads(self, upload_after_days: int) -> int:
+        """Count tagged clips eligible for YouTube upload.
+
+        Eligible means no youtube_id yet and first seen at least
+        upload_after_days ago, matching the sync pass deferral logic.
+        """
+        cutoff = (datetime.now(UTC) - timedelta(days=upload_after_days)).isoformat()
+        with self._connect() as conn:
+            row = conn.execute(
+                "SELECT COUNT(*) FROM processed_files"
+                " WHERE youtube_id IS NULL"
+                " AND first_seen_at IS NOT NULL"
+                " AND first_seen_at <= ?",
+                (cutoff,),
+            ).fetchone()
+        return int(row[0])
 
     def stats_by_game(self) -> list[dict[str, int | str]]:
         """Return per-game clip and upload counts, ordered by clip count descending."""

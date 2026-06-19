@@ -606,6 +606,17 @@ def status(ctx: click.Context) -> None:
     stats = db.stats()
     click.echo(f"Tagged clips : {stats['total_tagged']}")
     click.echo(f"YT uploads   : {stats['total_uploaded']}")
+
+    pending = db.pending_uploads(config.youtube.upload_after_days)
+    click.echo(f"YT pending   : {pending}")
+
+    quota_at = db.get_quota_exceeded_at()
+    if quota_at is not None:
+        click.echo(
+            "YT quota     : exceeded, resets midnight Pacific "
+            f"(next sync {config.youtube.sync_hour:02d}:00)"
+        )
+
     last = db.last_tagged()
     if last:
         name = Path(last["file_path"]).name
