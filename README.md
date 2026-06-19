@@ -193,16 +193,19 @@ All checks green means clips will be tagged and Plex collections will update aut
 
 ### Step 6 (Optional): Set up YouTube archiving
 
+> **Optional, one-time, about 5 minutes. Skip this entire step if you only want Plex collections.** YouTube archiving is a bonus for off-site backup. Uploads require your own Google Cloud OAuth client because that is YouTube's rule for any upload: there is no API-key shortcut, and a shared/bundled credential is not possible (uploads go to *your* channel, and unverified apps are capped at 100 users). The setup is a one-time chore and **never requires Google verification.**
+
 Free permanent archival storage. ReplayTagger uploads the source file without pre-encoding; YouTube re-encodes all uploads through their own pipeline regardless, so the stored copy reflects their transcoding, same as any other YouTube upload.
 
 #### Google Cloud setup
 
 1. [console.cloud.google.com](https://console.cloud.google.com/) → new project
 2. **APIs & Services → Library** → enable **YouTube Data API v3**
-3. **APIs & Services → OAuth consent screen** → External → fill in app name and email → Save
-4. On the same OAuth consent screen page, click **Publish App** and confirm.
-   This removes Google's 7-day refresh token expiry that applies to apps left in Testing status. You will see an "unverified app" warning the first time you authorize - click **Advanced → Go to [app name] (unsafe)** to proceed. This is expected for personal-use apps and only appears once.
-5. **APIs & Services → Credentials → Create Credentials → OAuth client ID**
+3. Open **Google Auth Platform** (search "Auth Platform" in the console). Google's newer UI splits the old single OAuth consent screen across separate **Branding**, **Audience**, and **Clients** pages:
+   - **Branding**: set app name, user support email, and developer contact email → **Save**.
+   - **Audience**: set user type to **External**, then click **Publish app** to move from *Testing* to *In production*. This removes Google's 7-day refresh-token expiry that applies to apps left in Testing status.
+4. **Ignore the Verification Center.** It will warn that verification is "required" because the upload scope is sensitive. You do **not** need it: verification is only for public apps with many users. A personal app uploading to your own channel runs fine unverified (capped at 100 users, irrelevant here). The only consequence is a one-time "unverified app" warning during authorization, covered below.
+5. **Clients → Create client → OAuth client ID**
    - Application type: **TV and Limited Input devices** (required for headless device flow)
 6. Add to `.env`:
    ```bash
@@ -216,9 +219,9 @@ Free permanent archival storage. ReplayTagger uploads the source file without pr
 docker compose run --rm replaytagger youtube-auth
 ```
 
-Enter the displayed code at `google.com/device`. Token saved to `data/youtube_token.json` (one-time setup).
+Enter the displayed code at `google.com/device`. The first time, Google shows an "unverified app" warning: click **Advanced → Go to [app name] (unsafe)** to proceed. This is expected for personal-use apps and appears only once. Token saved to `data/youtube_token.json` (one-time setup).
 
-> If you set up YouTube before this step was documented, go to **APIs & Services → OAuth consent screen** and click **Publish App**, then delete `data/youtube_token.json` and re-run `youtube-auth` once to get a long-lived token.
+> If you set up YouTube before publishing the app (or left it in Testing), open **Google Auth Platform → Audience**, click **Publish app**, then delete `data/youtube_token.json` and re-run `youtube-auth` once to get a long-lived token. Apps left in Testing expire the refresh token every 7 days.
 
 #### Enable in config.yaml
 
