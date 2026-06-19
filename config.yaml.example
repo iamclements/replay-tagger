@@ -115,16 +115,20 @@ youtube:
   # tags: [gaming, clips]
 
 # ── Notifications ─────────────────────────────────────────────────────────────
-# Supported types:  discord | generic
+# Supported types:  discord | ntfy | generic
 # Supported events: scan_complete | error | clip_tagged | clip_uploaded
 #
-# scan_complete and error are recommended defaults — clip_tagged and
+# scan_complete and error are recommended defaults - clip_tagged and
 # clip_uploaded fire per file and can be noisy on large backlogs.
 #
 # notifications:
 #   webhooks:
 #     - url: https://discord.com/api/webhooks/SERVER_ID/TOKEN
 #       type: discord
+#       events: [scan_complete, error]
+#
+#     - url: https://ntfy.sh/your-topic
+#       type: ntfy
 #       events: [scan_complete, error]
 #
 #     - url: https://example.com/webhook

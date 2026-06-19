@@ -26,7 +26,7 @@ _DISCORD_COLORS: dict[NotifyEvent, int] = {
     NotifyEvent.ERROR: 0xED4245,
 }
 
-_DISCORD_TITLES: dict[NotifyEvent, str] = {
+_EVENT_TITLES: dict[NotifyEvent, str] = {
     NotifyEvent.CLIP_TAGGED: "Clip Tagged",
     NotifyEvent.CLIP_UPLOADED: "Clip Uploaded to YouTube",
     NotifyEvent.SCAN_COMPLETE: "Scan Complete",
@@ -39,12 +39,19 @@ def _discord_payload(event: NotifyEvent, data: dict[str, Any]) -> dict[str, Any]
     return {
         "embeds": [
             {
-                "title": f"ReplayTagger: {_DISCORD_TITLES[event]}",
+                "title": f"ReplayTagger: {_EVENT_TITLES[event]}",
                 "color": _DISCORD_COLORS[event],
                 "fields": fields,
             }
         ]
     }
+
+
+def _ntfy_message(event: NotifyEvent, data: dict[str, Any]) -> tuple[str, str]:
+    """Build the (title, plaintext body) for an ntfy notification."""
+    title = f"ReplayTagger: {_EVENT_TITLES[event]}"
+    body = "\n".join(f"{k}: {v}" for k, v in data.items()) or event.value
+    return title, body
 
 
 def _generic_payload(event: NotifyEvent, data: dict[str, Any]) -> dict[str, Any]:
@@ -65,10 +72,19 @@ class NotificationClient:
         for wh in self._webhooks:
             if event.value not in wh.events:
                 continue
-            builder = _BUILDERS.get(wh.type, _generic_payload)
             try:
-                payload = builder(event, data)
-                resp = requests.post(wh.url, json=payload, timeout=10)
+                if wh.type == "ntfy":
+                    title, body = _ntfy_message(event, data)
+                    resp = requests.post(
+                        wh.url,
+                        data=body.encode("utf-8"),
+                        headers={"Title": title},
+                        timeout=10,
+                    )
+                else:
+                    builder = _BUILDERS.get(wh.type, _generic_payload)
+                    payload = builder(event, data)
+                    resp = requests.post(wh.url, json=payload, timeout=10)
                 resp.raise_for_status()
                 log.debug("notification_sent", type=wh.type, notify_event=event.value)
             except Exception as exc:

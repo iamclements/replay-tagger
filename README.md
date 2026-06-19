@@ -249,14 +249,16 @@ youtube:
 
 ## Notifications
 
-ReplayTagger can send webhook notifications to Discord or any generic HTTP endpoint when clips are tagged, uploaded, or when errors occur.
+ReplayTagger can send webhook notifications to Discord, ntfy, or any generic HTTP endpoint when clips are tagged, uploaded, or when errors occur.
 
 For a single webhook, set `WEBHOOK_URL` in `.env` - no config.yaml needed:
 
 ```bash
-WEBHOOK_URL=https://discord.com/api/webhooks/SERVER_ID/TOKEN
+WEBHOOK_URL=https://ntfy.sh/your-topic
 WEBHOOK_EVENTS=scan_complete,error  # optional, these are the defaults
 ```
+
+The type is auto-detected from the URL: `discord.com` -> `discord`, `ntfy.sh` -> `ntfy`, anything else -> `generic`. Override with `WEBHOOK_TYPE` if needed.
 
 For multiple webhooks or per-webhook event filtering, use config.yaml:
 
@@ -266,9 +268,12 @@ notifications:
     - url: https://discord.com/api/webhooks/SERVER_ID/TOKEN
       type: discord
       events: [clip_tagged, scan_complete, error]
+    - url: https://ntfy.sh/your-topic
+      type: ntfy
+      events: [scan_complete, error]
 ```
 
-**Supported types:** `discord` · `generic`
+**Supported types:** `discord` · `ntfy` · `generic`
 
 **Supported events:**
 
@@ -281,7 +286,7 @@ notifications:
 
 > `clip_tagged` and `clip_uploaded` fire once per file; leave them out if you have a large backlog to process and don't want per-clip noise. `scan_complete` and `error` are good defaults for everyone.
 
-Discord webhooks send colour-coded embeds (green for tagged, yellow for uploaded, blue for scan complete, red for error). Generic webhooks POST `{"event": "...", "data": {...}}` JSON. Failed webhook requests log a warning and never interrupt tagging.
+Discord webhooks send colour-coded embeds (green for tagged, yellow for uploaded, blue for scan complete, red for error). ntfy webhooks POST a plaintext body with the event details and a `Title` header. Generic webhooks POST `{"event": "...", "data": {...}}` JSON. Failed webhook requests log a warning and never interrupt tagging.
 
 See [config.yaml.example](config.yaml.example) for the full reference.
 
@@ -367,7 +372,7 @@ youtube:
   privacy: private
   upload_after_days: 0
 
-# optional: webhook notifications (discord | generic)
+# optional: webhook notifications (discord | ntfy | generic)
 # notifications:
 #   webhooks:
 #     - url: https://discord.com/api/webhooks/...
@@ -405,7 +410,7 @@ All settings can be configured via `.env`. Secrets must use env vars and never g
 | `YOUTUBE_TAGS` | Comma-separated tags applied to every upload alongside the game name (default: `gaming,clips`) |
 | `GAME_NAME_MAP` | JSON map of folder names to game names, e.g. `'{"Apex Legends Season 20": "Apex Legends"}'`; merged with and overrides config.yaml entries |
 | `WEBHOOK_URL` | Webhook URL for notifications (Discord or generic HTTP); alternative to configuring webhooks in config.yaml |
-| `WEBHOOK_TYPE` | `discord` or `generic` (auto-detected from URL if not set) |
+| `WEBHOOK_TYPE` | `discord`, `ntfy`, or `generic` (auto-detected from URL if not set) |
 | `WEBHOOK_EVENTS` | Comma-separated event list for the env-var webhook (default: `scan_complete,error`) |
 | `LOG_LEVEL` | `DEBUG`, `INFO`, `WARNING` (default: `INFO`) |
 | `LOG_FORMAT` | `json` or `text` (default: `json`) |

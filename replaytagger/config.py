@@ -43,7 +43,7 @@ class LoggingConfig:
 @dataclass
 class WebhookConfig:
     url: str
-    type: str = "generic"  # "discord" | "generic"
+    type: str = "generic"  # "discord" | "ntfy" | "generic"
     events: list[str] = field(default_factory=lambda: ["scan_complete", "error"])
 
 
@@ -156,10 +156,9 @@ def load_config(config_path: Path) -> AppConfig:
         _parsed_webhook = urlparse(_env_webhook_url)
         _hostname = _parsed_webhook.hostname or ""
         _is_discord = _hostname == "discord.com" or _hostname.endswith(".discord.com")
-        _env_webhook_type = os.environ.get(
-            "WEBHOOK_TYPE",
-            "discord" if _is_discord else "generic",
-        )
+        _is_ntfy = _hostname == "ntfy.sh" or _hostname.endswith(".ntfy.sh")
+        _detected_type = "discord" if _is_discord else "ntfy" if _is_ntfy else "generic"
+        _env_webhook_type = os.environ.get("WEBHOOK_TYPE", _detected_type)
         _env_webhook_events_raw = os.environ.get("WEBHOOK_EVENTS", "scan_complete,error")
         _env_webhook_events = [e.strip() for e in _env_webhook_events_raw.split(",") if e.strip()]
         _yaml_webhooks.append(
