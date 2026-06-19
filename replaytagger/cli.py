@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 import click
 import structlog
+import yaml
 
 if TYPE_CHECKING:
     from replaytagger.notifications import NotificationClient
@@ -389,7 +390,15 @@ def _scan_all(
 def main(ctx: click.Context, config_path: Path, dry_run: bool) -> None:
     """ReplayTagger: tag game clips by genre so Plex builds per-game collections."""
     ctx.ensure_object(dict)
-    cfg = load_config(config_path)
+    try:
+        cfg = load_config(config_path)
+    except yaml.YAMLError as exc:
+        # init writes a fresh config, so let it run even over a broken one.
+        if ctx.invoked_subcommand == "init":
+            cfg = AppConfig()
+        else:
+            click.echo(f"[FAIL] {config_path} is not valid YAML: {exc}", err=True)
+            sys.exit(1)
     rt_logging.configure(cfg.logging.level, cfg.logging.format)
     # Auth commands obtain credentials; skip validation so they can run before
     # a token exists even when plex.enabled or youtube.enabled is already set.
@@ -400,6 +409,22 @@ def main(ctx: click.Context, config_path: Path, dry_run: bool) -> None:
     ctx.obj["config"] = cfg
     ctx.obj["config_path"] = config_path
     ctx.obj["dry_run"] = dry_run
+
+
+def _tool_version(tool: str) -> str:
+    """Return the version string from `tool -version`, or "" if it can't be read."""
+    import subprocess
+
+    try:
+        out = subprocess.run([tool, "-version"], capture_output=True, text=True, timeout=5)
+    except Exception:
+        return ""
+    first = out.stdout.splitlines()[0] if out.stdout else ""
+    parts = first.split()
+    # e.g. "ffmpeg version 6.1.1 Copyright (c) ..."
+    if len(parts) >= 3 and parts[1] == "version":
+        return parts[2]
+    return first
 
 
 def _config_template_path() -> Path | None:
@@ -847,7 +872,7 @@ def doctor(ctx: click.Context) -> None:
     # ffmpeg / ffprobe
     for tool in (config.ffmpeg_path, config.ffprobe_path):
         if shutil.which(tool):
-            ok(tool)
+            ok(tool, _tool_version(tool))
         else:
             fail(tool, "not found - install ffmpeg or set ffmpeg_path/ffprobe_path in config.yaml")
 
