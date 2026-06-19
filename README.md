@@ -199,10 +199,12 @@ Free permanent archival storage. ReplayTagger uploads the source file without pr
 
 1. [console.cloud.google.com](https://console.cloud.google.com/) → new project
 2. **APIs & Services → Library** → enable **YouTube Data API v3**
-3. **APIs & Services → Credentials → Create Credentials → OAuth client ID**
-   - If prompted to configure a consent screen: External → app name + email → save
-4. Application type: **TV and Limited Input devices** (required for headless device flow)
-5. Add to `.env`:
+3. **APIs & Services → OAuth consent screen** → External → fill in app name and email → Save
+4. On the same OAuth consent screen page, click **Publish App** and confirm.
+   This removes Google's 7-day refresh token expiry that applies to apps left in Testing status. You will see an "unverified app" warning the first time you authorize - click **Advanced → Go to [app name] (unsafe)** to proceed. This is expected for personal-use apps and only appears once.
+5. **APIs & Services → Credentials → Create Credentials → OAuth client ID**
+   - Application type: **TV and Limited Input devices** (required for headless device flow)
+6. Add to `.env`:
    ```bash
    YOUTUBE_CLIENT_ID=your_client_id
    YOUTUBE_CLIENT_SECRET=your_client_secret
@@ -215,6 +217,8 @@ docker compose run --rm replaytagger youtube-auth
 ```
 
 Enter the displayed code at `google.com/device`. Token saved to `data/youtube_token.json` (one-time setup).
+
+> If you set up YouTube before this step was documented, go to **APIs & Services → OAuth consent screen** and click **Publish App**, then delete `data/youtube_token.json` and re-run `youtube-auth` once to get a long-lived token.
 
 #### Enable in config.yaml
 
