@@ -23,6 +23,23 @@ YouTube archiving is an optional bonus. Clips are uploaded as-is; YouTube re-enc
 
 ---
 
+## Quickstart
+
+Already running Plex and Docker? Copy-paste this:
+
+```bash
+curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/docker-compose.yml
+curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/.env.example && mv .env.example .env
+$EDITOR .env                                          # set CLIPS_DIR, PLEX_URL, PLEX_LIBRARY_NAME
+docker compose run --rm replaytagger plex-auth        # guided login, saves the Plex token
+docker compose run --rm replaytagger doctor           # verify connectivity, ffmpeg, and paths
+docker compose up -d                                  # tag existing clips, then watch for new ones
+```
+
+New to Plex or Docker? Follow the full [Setup](#setup) walkthrough instead.
+
+---
+
 ## What you need
 
 - **A gaming PC** with [NVIDIA GeForce Experience](https://www.nvidia.com/en-us/geforce/geforce-experience/) or any capture tool that saves clips into per-game subfolders
@@ -33,16 +50,6 @@ YouTube archiving is an optional bonus. Clips are uploaded as-is; YouTube re-enc
 > **ReplayTagger runs on your server, not your gaming PC.** It only needs network access to Plex and to the folder where clips land; it doesn't have to run on the same host as Plex.
 
 Optional: a Google account for YouTube archiving.
-
----
-
-> **Already have Plex and Docker running?** Skip the tutorial:
-> ```bash
-> curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/docker-compose.yml
-> curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/.env.example && mv .env.example .env
-> # Edit .env: set CLIPS_DIR, PLEX_URL, PLEX_TOKEN, PLEX_LIBRARY_NAME
-> docker compose up -d && docker compose run --rm replaytagger doctor
-> ```
 
 ---
 
