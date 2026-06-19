@@ -154,6 +154,7 @@ def _upload_file(
             privacy=config.youtube.privacy,
             category_id=config.youtube.category_id,
             extra_tags=config.youtube.tags,
+            notifier=notifier,
         )
         db.mark_uploaded(file_path, video_id)
         if notifier:
@@ -241,6 +242,7 @@ def _run_youtube_sync_pass(
                 privacy=config.youtube.privacy,
                 category_id=config.youtube.category_id,
                 extra_tags=config.youtube.tags,
+                notifier=notifier,
             )
             db.mark_tagged(clip, game_name, content_hash)
             db.mark_uploaded(clip, video_id)
