@@ -45,11 +45,10 @@
       --border-soft: #1b2740;
       --text: #f1f5f9;
       --muted: #93a4c0;
+      --dim: #5b6b88;
       --accent: #4ade80;
       --accent-2: #34d399;
-      --nvidia: #76b900;
       --plex: #e5a00d;
-      --amd: #ef4444;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
@@ -59,223 +58,152 @@
       color: var(--text);
       line-height: 1.65;
       -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
       overflow-x: hidden;
     }
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
-    code, pre { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
-    .wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
-    .eyebrow {
+    code, pre, .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; }
+    ::selection { background: rgba(74,222,128,0.28); color: #fff; }
+    h1, h2, h3 { font-weight: 800; letter-spacing: -0.03em; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    .kicker {
       display: inline-block;
-      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
-      color: var(--accent);
-      background: rgba(74, 222, 128, 0.08);
-      border: 1px solid rgba(74, 222, 128, 0.22);
-      border-radius: 999px;
-      padding: 6px 16px;
-      margin-bottom: 26px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 0.72rem; font-weight: 500; letter-spacing: 0.14em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 16px;
     }
 
     /* Nav */
     nav {
       position: sticky; top: 0; z-index: 50;
-      backdrop-filter: blur(12px);
+      backdrop-filter: blur(14px);
       background: rgba(7, 11, 22, 0.72);
       border-bottom: 1px solid var(--border-soft);
     }
-    nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 64px; }
-    nav .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); }
-    nav .brand img { width: 30px; height: 30px; }
-    nav .links { display: flex; align-items: center; gap: 26px; }
-    nav .links a { color: var(--muted); font-size: 0.92rem; font-weight: 500; }
-    nav .links a:hover { color: var(--text); text-decoration: none; }
-    nav .links .ghbtn {
-      color: var(--text); border: 1px solid var(--border);
-      padding: 8px 16px; border-radius: 9px;
+    nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 66px; }
+    nav .brand { display: flex; align-items: center; gap: 11px; font-weight: 700; font-size: 1.12rem; letter-spacing: -0.01em; color: var(--text); }
+    nav .brand img { width: 32px; height: 32px; border-radius: 8px; }
+    nav .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .nav-ghost {
+      display: inline-flex; align-items: center; gap: 7px;
+      color: #cbd6ea; font-size: 0.9rem; font-weight: 600;
+      border: 1px solid var(--border); padding: 8px 15px; border-radius: 9px;
+      transition: border-color .2s ease, color .2s ease;
     }
-    nav .links .ghbtn:hover { border-color: var(--accent); }
-    @media (max-width: 600px) { nav .links a:not(.ghbtn) { display: none; } }
+    .nav-ghost:hover { border-color: var(--accent); color: #fff; text-decoration: none; }
+    .nav-cta {
+      display: inline-flex; align-items: center; gap: 7px;
+      font-size: 0.9rem; font-weight: 700; color: #052e16;
+      background: var(--accent); padding: 9px 17px; border-radius: 9px;
+      box-shadow: 0 6px 18px rgba(74,222,128,0.22);
+      transition: transform .14s ease, box-shadow .2s ease;
+    }
+    .nav-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 26px rgba(74,222,128,0.34); text-decoration: none; }
 
     /* Hero */
-    header {
-      position: relative;
-      text-align: center;
-      padding: 110px 0 96px;
-      overflow: hidden;
-    }
-    .glow {
-      position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.5;
-      z-index: 0; pointer-events: none;
-    }
-    .glow.a { width: 480px; height: 480px; background: #16623a; top: -160px; left: 50%; transform: translateX(-50%); }
-    .glow.b { width: 320px; height: 320px; background: #1d3b6e; top: 40px; left: -80px; opacity: 0.4; }
-    .glow.c { width: 300px; height: 300px; background: #5c4a07; top: 120px; right: -80px; opacity: 0.3; }
+    header { position: relative; overflow: hidden; padding: clamp(64px, 9vw, 104px) 0 clamp(56px, 7vw, 88px); text-align: center; }
+    .glow { position: absolute; border-radius: 50%; filter: blur(110px); z-index: 0; pointer-events: none; }
+    .glow.a { width: 560px; height: 560px; background: #16623a; top: -200px; left: 50%; transform: translateX(-50%); opacity: .5; animation: pulse 7s ease-in-out infinite; }
+    .glow.b { width: 340px; height: 340px; background: #1d3b6e; top: 20px; left: -100px; opacity: .4; }
+    .glow.c { width: 320px; height: 320px; background: #5c4a07; top: 120px; right: -100px; opacity: .3; }
+    @keyframes pulse { 0%,100% { opacity: .45; } 50% { opacity: .72; } }
     header .wrap { position: relative; z-index: 1; }
-    header img.logo {
-      width: 92px; height: 92px;
-      filter: drop-shadow(0 10px 30px rgba(74,222,128,0.25));
-    }
     header h1 {
-      font-size: clamp(2.4rem, 6.5vw, 4rem);
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      line-height: 1.05;
-      margin: 26px 0 18px;
+      font-size: clamp(2.5rem, 6.4vw, 4.3rem); line-height: 1.04;
+      margin-bottom: 22px; text-wrap: balance;
     }
     header h1 .grad {
       background: linear-gradient(120deg, var(--accent) 0%, #38bdf8 100%);
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent;
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
     }
-    header .tagline {
-      font-size: clamp(1.08rem, 2.4vw, 1.35rem);
-      color: var(--muted);
-      max-width: 660px;
-      margin: 0 auto 34px;
-    }
-    .badges { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 38px; }
-    .badge {
-      font-size: 0.82rem; font-weight: 500;
-      color: var(--muted);
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.02);
-      border-radius: 999px;
-      padding: 6px 16px;
-    }
-    .badge.nv { border-color: rgba(118,185,0,0.4); color: #a3e635; }
-    .badge.px { border-color: rgba(229,160,13,0.4); color: var(--plex); }
-    .badge.amd { border-color: rgba(239,68,68,0.4); color: #f87171; }
+    .tagline { font-size: clamp(1.08rem, 2.2vw, 1.35rem); color: var(--muted); max-width: 660px; margin: 0 auto 34px; text-wrap: pretty; }
     .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
-    .btn {
-      display: inline-flex; align-items: center; gap: 8px;
-      font-weight: 600; font-size: 0.98rem;
-      border-radius: 11px;
-      padding: 14px 28px;
-      transition: transform .12s ease, box-shadow .2s ease, background .2s ease, border-color .2s ease;
-    }
+    .btn { display: inline-flex; align-items: center; gap: 9px; font-weight: 600; font-size: 1rem; border-radius: 12px; padding: 15px 28px; transition: transform .14s ease, box-shadow .2s ease, border-color .2s ease; }
     .btn:hover { text-decoration: none; transform: translateY(-2px); }
-    .btn-primary {
-      background: linear-gradient(120deg, var(--accent), var(--accent-2));
-      color: #052e16;
-      box-shadow: 0 8px 24px rgba(74,222,128,0.25);
-    }
-    .btn-primary:hover { box-shadow: 0 12px 32px rgba(74,222,128,0.38); }
-    .btn-ghost { border: 1px solid var(--border); color: var(--text); background: rgba(255,255,255,0.02); }
+    .btn-primary { font-weight: 700; padding: 15px 30px; color: #052e16; background: linear-gradient(120deg, var(--accent), var(--accent-2)); box-shadow: 0 10px 28px rgba(74,222,128,0.28); }
+    .btn-primary:hover { box-shadow: 0 14px 36px rgba(74,222,128,0.4); }
+    .btn-ghost { color: var(--text); border: 1px solid var(--border); background: rgba(255,255,255,0.02); }
     .btn-ghost:hover { border-color: var(--accent); }
+    .trust { display: flex; gap: 10px 24px; justify-content: center; flex-wrap: wrap; color: var(--muted); font-size: 0.86rem; margin-top: 30px; }
+    .trust span { display: inline-flex; align-items: center; gap: 7px; }
+    .trust b { color: var(--accent); }
+    .hero-shot {
+      margin: clamp(44px, 6vw, 64px) auto 0; max-width: 940px;
+      border-radius: 16px; overflow: hidden; border: 1px solid var(--border);
+      background: #0b1120; box-shadow: 0 40px 90px rgba(0,0,0,0.55);
+    }
+    .winbar { display: flex; align-items: center; gap: 8px; padding: 12px 16px; background: #0b1120; border-bottom: 1px solid var(--border-soft); }
+    .winbar .dot { width: 11px; height: 11px; border-radius: 50%; }
+    .winbar .title { margin-left: 12px; font-size: 0.74rem; color: var(--dim); }
+    .hero-shot img { display: block; width: 100%; height: auto; }
 
     /* Sections */
-    section { padding: 90px 0; position: relative; }
-    section + section { border-top: 1px solid var(--border-soft); }
-    .sec-head { text-align: center; margin-bottom: 52px; }
-    section h2 {
-      font-size: clamp(1.7rem, 4vw, 2.4rem);
-      font-weight: 700;
-      letter-spacing: -0.02em;
-      margin-bottom: 14px;
-    }
+    section { padding: clamp(64px, 9vw, 100px) 0; }
+    section + section, .after-hero { border-top: 1px solid var(--border-soft); }
+    .sec-head { text-align: center; margin-bottom: clamp(40px, 6vw, 56px); }
+    section h2 { font-size: clamp(1.8rem, 4vw, 2.6rem); letter-spacing: -0.025em; margin-bottom: 14px; text-wrap: balance; }
     section .lead { color: var(--muted); max-width: 620px; margin: 0 auto; font-size: 1.05rem; }
 
-    /* Steps */
-    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 18px; }
-    .step {
-      position: relative;
-      background: linear-gradient(180deg, var(--bg-alt), var(--bg));
-      border: 1px solid var(--border-soft);
-      border-radius: 16px;
-      padding: 26px;
-      transition: transform .18s ease, border-color .18s ease;
-    }
-    .step:hover { transform: translateY(-4px); border-color: var(--border); }
-    .step .num {
-      display: inline-flex; align-items: center; justify-content: center;
-      width: 34px; height: 34px; border-radius: 10px;
-      background: rgba(74,222,128,0.12); color: var(--accent); font-weight: 700;
-      margin-bottom: 16px;
-    }
-    .step h3 { font-size: 1.08rem; margin-bottom: 6px; }
-    .step p { color: var(--muted); font-size: 0.92rem; }
+    /* Before / After */
+    .ba-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .card { background: var(--bg-alt); border: 1px solid var(--border-soft); border-radius: 18px; padding: 24px; }
+    .card-label { display: flex; align-items: center; gap: 9px; margin-bottom: 18px; font-family: "JetBrains Mono", monospace; font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+    .card-label .d { width: 9px; height: 9px; border-radius: 50%; }
+    .filelist { font-family: "JetBrains Mono", monospace; font-size: 0.82rem; color: #7e8ba6; display: flex; flex-direction: column; gap: 9px; }
+    .filelist div { display: flex; gap: 10px; align-items: center; }
+    .filelist .arr { opacity: .5; }
+    .filelist .fldr { color: #aeb9d0; font-weight: 600; }
+    .filelist .clip { padding-left: 22px; }
+    .after { background: linear-gradient(180deg, #0e1a2c, #0b1322); border-color: var(--border); position: relative; overflow: hidden; }
+    .after::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; background: linear-gradient(90deg, var(--accent), transparent); }
+    .coll { display: flex; flex-direction: column; gap: 10px; }
+    .coll-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 11px; padding: 12px 14px; }
+    .coll-row .name { display: flex; align-items: center; gap: 11px; font-weight: 600; }
+    .coll-row .poster { width: 28px; height: 28px; border-radius: 7px; }
+    .coll-row .count { font-family: "JetBrains Mono", monospace; font-size: 0.8rem; color: var(--muted); }
 
-    .diagram { text-align: center; margin-top: 44px; }
-    .diagram img {
-      max-width: 100%; height: auto; border-radius: 16px;
-      border: 1px solid var(--border-soft);
-      background: var(--bg-alt);
-      padding: 20px;
-    }
+    /* Steps */
+    .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+    .step { background: linear-gradient(180deg, var(--bg-alt), #090f1c); border: 1px solid var(--border-soft); border-radius: 16px; padding: 26px; transition: transform .18s ease, border-color .18s ease; }
+    .step:hover { transform: translateY(-4px); border-color: #2c3a57; }
+    .step .num { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background: rgba(74,222,128,0.12); color: var(--accent); font-weight: 800; margin-bottom: 16px; }
+    .step h3 { font-size: 1.12rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 7px; }
+    .step p { color: var(--muted); font-size: 0.93rem; }
+    .diagram { margin-top: 40px; }
+    .diagram img { display: block; width: 100%; height: auto; border-radius: 16px; border: 1px solid var(--border-soft); background: var(--bg-alt); padding: 20px; }
 
     /* Features */
-    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 18px; }
-    .feature {
-      position: relative;
-      background: var(--bg-alt);
-      border: 1px solid var(--border-soft);
-      border-radius: 16px;
-      padding: 28px;
-      overflow: hidden;
-      transition: transform .18s ease, border-color .18s ease;
-    }
-    .feature::before {
-      content: ""; position: absolute; inset: 0 0 auto 0; height: 2px;
-      background: linear-gradient(90deg, var(--accent), transparent);
-      opacity: 0; transition: opacity .18s ease;
-    }
-    .feature:hover { transform: translateY(-4px); border-color: var(--border); }
+    .features { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 18px; }
+    .feature { position: relative; background: var(--bg-alt); border: 1px solid var(--border-soft); border-radius: 16px; padding: 28px; overflow: hidden; transition: transform .18s ease, border-color .18s ease; }
+    .feature::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 2px; background: linear-gradient(90deg, var(--accent), transparent); opacity: 0; transition: opacity .18s ease; }
+    .feature:hover { transform: translateY(-4px); border-color: #2c3a57; }
     .feature:hover::before { opacity: 1; }
-    .feature .ico { font-size: 1.5rem; margin-bottom: 14px; display: block; }
-    .feature h3 { font-size: 1.08rem; margin-bottom: 8px; }
-    .feature p { color: var(--muted); font-size: 0.92rem; }
+    .feature .cat { font-family: "JetBrains Mono", monospace; font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--accent); margin-bottom: 12px; }
+    .feature h3 { font-size: 1.14rem; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 8px; }
+    .feature p { color: var(--muted); font-size: 0.93rem; }
 
     /* Quickstart */
-    .terminal {
-      background: #05080f;
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
-      max-width: 800px; margin: 0 auto;
-    }
-    .terminal .bar {
-      display: flex; align-items: center; gap: 8px;
-      padding: 13px 18px;
-      background: #0b1120;
-      border-bottom: 1px solid var(--border-soft);
-    }
+    .terminal { background: #05080f; border: 1px solid var(--border); border-radius: 16px; overflow: hidden; box-shadow: 0 30px 70px rgba(0,0,0,0.5); max-width: 820px; margin: 0 auto; }
+    .terminal .bar { display: flex; align-items: center; gap: 8px; padding: 13px 18px; background: #0b1120; border-bottom: 1px solid var(--border-soft); }
     .terminal .bar .dot { width: 12px; height: 12px; border-radius: 50%; }
-    .terminal .bar .dot.r { background: #ff5f57; }
-    .terminal .bar .dot.y { background: #febc2e; }
-    .terminal .bar .dot.g { background: #28c840; }
-    .terminal .bar .title { margin-left: 10px; color: #5b6b88; font-size: 0.8rem; }
-    pre.code {
-      padding: 24px;
-      overflow-x: auto;
-      font-size: 0.86rem;
-      line-height: 1.8;
-      color: #cbd5e1;
-    }
-    pre.code .c { color: #5b6b88; }
+    .terminal .bar .title { margin-left: 10px; font-size: 0.8rem; color: var(--dim); }
+    .copy-btn { margin-left: auto; font-family: "JetBrains Mono", monospace; font-size: 0.74rem; color: var(--muted); background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 7px; padding: 5px 11px; cursor: pointer; transition: color .2s ease, border-color .2s ease; }
+    .copy-btn:hover { color: #fff; border-color: var(--accent); }
+    pre.code { padding: 24px; overflow-x: auto; font-size: 0.84rem; line-height: 1.85; color: #cbd5e1; }
+    pre.code .c { color: var(--dim); }
     pre.code .g { color: var(--accent); }
     pre.code .v { color: #38bdf8; }
 
-    .shot { text-align: center; margin-top: 56px; }
-    .shot img {
-      max-width: 100%; height: auto; border-radius: 16px;
-      border: 1px solid var(--border);
-      box-shadow: 0 24px 60px rgba(0,0,0,0.5);
-    }
-    .shot figcaption { color: var(--muted); font-size: 0.88rem; margin-top: 16px; }
-
-    /* CTA band */
-    .cta-band { text-align: center; }
-    .cta-band .box {
-      position: relative;
-      background: linear-gradient(135deg, #0e2a1c, #0c1a30);
-      border: 1px solid var(--border);
-      border-radius: 24px;
-      padding: 64px 32px;
-      overflow: hidden;
-    }
-    .cta-band h2 { margin-bottom: 12px; }
-    .cta-band p { color: var(--muted); margin-bottom: 30px; }
+    /* FAQ */
+    .faq { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+    .faq details { background: var(--bg-alt); border: 1px solid var(--border-soft); border-radius: 14px; padding: 4px 20px; }
+    .faq summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px 0; font-weight: 700; font-size: 1.04rem; letter-spacing: -0.01em; color: var(--text); }
+    .faq summary::-webkit-details-marker { display: none; }
+    .faq .plus { color: var(--accent); font-size: 1.4rem; line-height: 1; flex-shrink: 0; transition: transform .2s ease; }
+    .faq details[open] .plus { transform: rotate(45deg); }
+    .faq p { color: var(--muted); font-size: 0.96rem; padding: 0 0 18px; }
+    .faq p .mono { color: #cbd5e1; }
 
     /* Footer */
     footer { padding: 56px 0; text-align: center; color: var(--muted); font-size: 0.9rem; border-top: 1px solid var(--border-soft); }
@@ -283,24 +211,22 @@
     footer .flinks a { color: var(--muted); }
     footer .flinks a:hover { color: var(--text); text-decoration: none; }
 
+    @media (max-width: 560px) {
+      nav .brand span { display: none; }
+    }
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
       * { transition: none !important; animation: none !important; }
-      .btn:hover, .step:hover, .feature:hover { transform: none; }
     }
   </style>
 </head>
 <body>
   <nav>
     <div class="wrap">
-      <a class="brand" href="#top">
-        <img src="images/logo.svg" alt="">ReplayTagger
-      </a>
-      <div class="links">
-        <a href="#how">How it works</a>
-        <a href="#features">Features</a>
-        <a href="#quickstart">Quickstart</a>
-        <a class="ghbtn" href="https://github.com/iamclements/replay-tagger">GitHub</a>
+      <a class="brand" href="#top"><img src="images/logo.svg" alt=""><span>ReplayTagger</span></a>
+      <div class="actions">
+        <a class="nav-ghost" href="https://github.com/iamclements/replay-tagger"><span>★</span> Star on GitHub</a>
+        <a class="nav-cta" href="#quickstart">Get started</a>
       </div>
     </div>
   </nav>
@@ -310,53 +236,82 @@
     <div class="glow b"></div>
     <div class="glow c"></div>
     <div class="wrap">
-      <img class="logo" src="images/logo.svg" alt="ReplayTagger logo">
-      <h1>Turn game clips into<br><span class="grad">Plex collections.</span></h1>
-      <p class="tagline">ReplayTagger watches your clips folder and tags each file with its game name, so Plex builds per-game collections automatically. No re-encoding, no manual sorting.</p>
-      <div class="badges">
-        <span class="badge nv">NVIDIA Instant Replay</span>
-        <span class="badge">OBS</span>
-        <span class="badge amd">AMD ReLive</span>
-        <span class="badge px">Plex</span>
-      </div>
+      <h1>Your game clips sorted into<br><span class="grad">Plex collections</span>, automatically.</h1>
+      <p class="tagline">ReplayTagger watches your clips folder and tags every file with its game, so Plex builds a clean per-game collection for you. No re-encoding. No manual sorting. No cloud.</p>
       <div class="cta">
-        <a class="btn btn-primary" href="#quickstart">Get started &rarr;</a>
+        <a class="btn btn-primary" href="#quickstart">Get started in 5 commands &rarr;</a>
         <a class="btn btn-ghost" href="https://github.com/iamclements/replay-tagger">View on GitHub</a>
+      </div>
+      <div class="trust">
+        <span><b>&#10003;</b> MIT licensed</span>
+        <span><b>&#10003;</b> No telemetry</span>
+        <span><b>&#10003;</b> Runs on your hardware</span>
+      </div>
+      <div class="hero-shot">
+        <div class="winbar">
+          <span class="dot" style="background:#ff5f57"></span>
+          <span class="dot" style="background:#febc2e"></span>
+          <span class="dot" style="background:#28c840"></span>
+          <span class="title mono">Plex · Gaming Clips · Collections</span>
+        </div>
+        <picture>
+          <source srcset="images/plex-collections.webp" type="image/webp">
+          <img src="images/plex-collections.png" alt="Per-game collections in Plex, built automatically by ReplayTagger" loading="lazy" width="1600" height="819">
+        </picture>
       </div>
     </div>
   </header>
 
+  <section class="after-hero">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="kicker">The payoff</span>
+        <h2>From a folder full of <span style="color:var(--muted)">Replay_2025-06-12.mp4</span><br>to a shelf of real collections.</h2>
+        <p class="lead">Your capture software already saves clips into a folder per game. ReplayTagger reads those folder names and turns them into Plex collections, with nothing to rename by hand.</p>
+      </div>
+      <div class="ba-grid">
+        <div class="card">
+          <div class="card-label"><span class="d" style="background:#ef4444"></span> Before: just folders of clips</div>
+          <div class="filelist">
+            <div class="fldr"><span class="arr">&#128193;</span> Apex Legends</div>
+            <div class="clip"><span class="arr">&#9656;</span> Replay 2025-06-12 21.33.04.mp4</div>
+            <div class="clip"><span class="arr">&#9656;</span> Replay 2025-06-12 21.41.55.mp4</div>
+            <div class="fldr"><span class="arr">&#128193;</span> Counter-Strike 2</div>
+            <div class="clip"><span class="arr">&#9656;</span> Replay 2025-06-10 23.18.47.mp4</div>
+            <div class="clip"><span class="arr">&#9656;</span> Desktop 2025-06-08 20.14.09.mp4</div>
+            <div class="fldr"><span class="arr">&#128193;</span> Battlefield 6</div>
+            <div class="clip"><span class="arr">&#9656;</span> Replay 2025-06-09 02.55.31.mp4</div>
+            <div class="fldr" style="opacity:.45"><span class="arr">&#128193;</span> …and 5 more game folders</div>
+          </div>
+        </div>
+        <div class="card after">
+          <div class="card-label"><span class="d" style="background:var(--accent)"></span> <span style="color:var(--accent)">After: Plex collections</span></div>
+          <div class="coll">
+            <div class="coll-row"><span class="name"><span class="poster" style="background:#76b900"></span> Apex Legends</span><span class="count">60 clips</span></div>
+            <div class="coll-row"><span class="name"><span class="poster" style="background:#e5a00d"></span> Counter-Strike 2</span><span class="count">64 clips</span></div>
+            <div class="coll-row"><span class="name"><span class="poster" style="background:#38bdf8"></span> Battlefield 6</span><span class="count">29 clips</span></div>
+            <div class="coll-row"><span class="name"><span class="poster" style="background:#ef4444"></span> Call of Duty: Warzone</span><span class="count">31 clips</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section id="how">
     <div class="wrap">
       <div class="sec-head">
-        <span class="eyebrow">How it works</span>
-        <h2>From clip to collection</h2>
-        <p class="lead">Your capture software already organizes clips into per-game folders. ReplayTagger turns those folder names into Plex collections, without re-encoding a single frame.</p>
+        <span class="kicker">How it works</span>
+        <h2>Four steps, fully hands-off</h2>
+        <p class="lead">Once it's running, you never touch it again. New clips get tagged the moment they land.</p>
       </div>
       <div class="steps">
-        <div class="step">
-          <span class="num">1</span>
-          <h3>Capture</h3>
-          <p>A clip lands in a per-game folder on your gaming PC.</p>
-        </div>
-        <div class="step">
-          <span class="num">2</span>
-          <h3>Sync</h3>
-          <p>A tool like Syncthing delivers it to your server.</p>
-        </div>
-        <div class="step">
-          <span class="num">3</span>
-          <h3>Tag</h3>
-          <p>ReplayTagger writes the game name into the clip's genre metadata with ffmpeg.</p>
-        </div>
-        <div class="step">
-          <span class="num">4</span>
-          <h3>Collect</h3>
-          <p>Plex reads the tag and drops the clip into the matching game collection.</p>
-        </div>
+        <div class="step"><span class="num">1</span><h3>Capture</h3><p>A clip lands in a per-game folder on your gaming PC.</p></div>
+        <div class="step"><span class="num">2</span><h3>Sync</h3><p>A tool like Syncthing delivers it to your server.</p></div>
+        <div class="step"><span class="num">3</span><h3>Tag</h3><p>ReplayTagger writes the game name into the clip's genre metadata with ffmpeg.</p></div>
+        <div class="step"><span class="num">4</span><h3>Collect</h3><p>Plex reads the tag and drops the clip into the matching game collection.</p></div>
       </div>
       <div class="diagram">
-        <img src="images/flow-diagram.svg" alt="ReplayTagger flow diagram">
+        <img src="images/flow-diagram.svg" alt="ReplayTagger flow diagram: capture, sync, tag, then route to Plex, YouTube, and notifications">
       </div>
     </div>
   </section>
@@ -364,41 +319,17 @@
   <section id="features">
     <div class="wrap">
       <div class="sec-head">
-        <span class="eyebrow">Why ReplayTagger</span>
+        <span class="kicker">Why ReplayTagger</span>
         <h2>Built for self-hosters</h2>
         <p class="lead">One container, your hardware, your rules.</p>
       </div>
       <div class="features">
-        <div class="feature">
-          <span class="ico">&#9889;</span>
-          <h3>No re-encoding</h3>
-          <p>ffmpeg remuxes to a temp file, atomically replaces the original, and restores its timestamp. Identical bytes except the tag.</p>
-        </div>
-        <div class="feature">
-          <span class="ico">&#127918;</span>
-          <h3>Any capture tool</h3>
-          <p>NVIDIA, OBS, AMD ReLive, or anything that saves clips into per-game subfolders. The folder name is all it needs.</p>
-        </div>
-        <div class="feature">
-          <span class="ico">&#128193;</span>
-          <h3>Runs on your server</h3>
-          <p>One Docker container on your NAS or homelab box. It just needs network access to Plex and the clips folder.</p>
-        </div>
-        <div class="feature">
-          <span class="ico">&#128250;</span>
-          <h3>Optional YouTube archive</h3>
-          <p>Queue uploads automatically. Each file is fingerprinted so it's never uploaded twice, even after a rename.</p>
-        </div>
-        <div class="feature">
-          <span class="ico">&#128276;</span>
-          <h3>Webhook notifications</h3>
-          <p>Fire a notification when clips are tagged or uploaded, including ntfy and other webhook targets.</p>
-        </div>
-        <div class="feature">
-          <span class="ico">&#128274;</span>
-          <h3>Free and open source</h3>
-          <p>MIT licensed, built for homelab and self-hosted setups. No accounts, no telemetry.</p>
-        </div>
+        <div class="feature"><div class="cat">Performance</div><h3>No re-encoding</h3><p>ffmpeg remuxes to a temp file, atomically replaces the original, and restores its timestamp. Identical bytes except the tag.</p></div>
+        <div class="feature"><div class="cat">Compatibility</div><h3>Any capture tool</h3><p>NVIDIA, OBS, AMD ReLive, or anything that saves clips into per-game subfolders. The folder name is all it needs.</p></div>
+        <div class="feature"><div class="cat">Deploy</div><h3>Runs on your server</h3><p>One Docker container on your NAS or homelab box. It just needs network access to Plex and the clips folder.</p></div>
+        <div class="feature"><div class="cat">Archive</div><h3>Optional YouTube archive</h3><p>Queue uploads automatically. Each file is fingerprinted so it's never uploaded twice, even after a rename.</p></div>
+        <div class="feature"><div class="cat">Alerts</div><h3>Webhook notifications</h3><p>Fire a notification when clips are tagged or uploaded, including ntfy and other webhook targets.</p></div>
+        <div class="feature"><div class="cat">Open source</div><h3>Free &amp; auditable</h3><p>MIT licensed, built for homelab and self-hosted setups. No accounts, no telemetry.</p></div>
       </div>
     </div>
   </section>
@@ -406,16 +337,19 @@
   <section id="quickstart">
     <div class="wrap">
       <div class="sec-head">
-        <span class="eyebrow">Quickstart</span>
+        <span class="kicker">Quickstart</span>
         <h2>Running in five commands</h2>
         <p class="lead">Already running Plex and Docker? Copy-paste this.</p>
       </div>
       <div class="terminal">
         <div class="bar">
-          <span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>
-          <span class="title">bash</span>
+          <span class="dot" style="background:#ff5f57"></span>
+          <span class="dot" style="background:#febc2e"></span>
+          <span class="dot" style="background:#28c840"></span>
+          <span class="title mono">bash</span>
+          <button class="copy-btn" id="copyBtn" type="button">Copy</button>
         </div>
-<pre class="code"><span class="c"># grab the compose file and env template</span>
+<pre class="code" id="cmd"><span class="c"># grab the compose file and env template</span>
 curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/docker-compose.yml
 curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/.env.example &amp;&amp; mv .env.example .env
 <span class="v">$EDITOR</span> .env                                          <span class="c"># set CLIPS_DIR, PLEX_URL, PLEX_LIBRARY_NAME</span>
@@ -424,26 +358,36 @@ docker compose run --rm replaytagger <span class="g">plex-auth</span>        <sp
 docker compose run --rm replaytagger <span class="g">doctor</span>           <span class="c"># verify connectivity, ffmpeg, paths</span>
 docker compose up -d                                  <span class="c"># tag clips, then watch for new ones</span></pre>
       </div>
-      <figure class="shot">
-        <picture>
-          <source srcset="images/plex-collections.webp" type="image/webp">
-          <img src="images/plex-collections.png" alt="Plex showing per-game collections built by ReplayTagger" loading="lazy" width="1600" height="819">
-        </picture>
-        <figcaption>Per-game collections in Plex, built automatically from your clip folders.</figcaption>
-      </figure>
     </div>
   </section>
 
-  <section class="cta-band">
+  <section id="faq">
     <div class="wrap">
-      <div class="box">
-        <div class="glow a" style="opacity:.25;"></div>
-        <h2>Stop sorting clips by hand</h2>
-        <p>Free, open source, and running in minutes.</p>
-        <div class="cta">
-          <a class="btn btn-primary" href="https://github.com/iamclements/replay-tagger#quickstart">Get started &rarr;</a>
-          <a class="btn btn-ghost" href="https://github.com/iamclements/replay-tagger">Star on GitHub</a>
-        </div>
+      <div class="sec-head">
+        <span class="kicker">FAQ</span>
+        <h2>Questions, answered</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>Will it re-encode or hurt my clip quality?<span class="plus">+</span></summary>
+          <p>No. ffmpeg only remuxes the container to write a metadata tag, then atomically replaces the original and restores its timestamp. The video and audio streams are copied bit-for-bit, so there's no quality loss and no extra disk churn.</p>
+        </details>
+        <details>
+          <summary>What capture software is supported?<span class="plus">+</span></summary>
+          <p>Anything that saves clips into per-game subfolders: NVIDIA Instant Replay, OBS, AMD ReLive, and others. ReplayTagger reads the folder name as the game name, so no integration or game database is required.</p>
+        </details>
+        <details>
+          <summary>Does it touch the cloud or my Plex account?<span class="plus">+</span></summary>
+          <p>It runs entirely on your hardware and talks to your local Plex server with a token you generate during setup. There are no accounts, no third-party services, and no telemetry. The optional YouTube archive is the only feature that reaches the internet, and it's off by default.</p>
+        </details>
+        <details>
+          <summary>What do I need to run it?<span class="plus">+</span></summary>
+          <p>Docker on any NAS or Linux host, a running Plex server, and a clips folder reachable by the container. The built-in <span class="mono">doctor</span> command checks connectivity, ffmpeg, and paths before you go live.</p>
+        </details>
+        <details>
+          <summary>Is it really free?<span class="plus">+</span></summary>
+          <p>Yes. MIT licensed and fully open source. Read every line, fork it, or open a PR.</p>
+        </details>
       </div>
     </div>
   </section>
@@ -459,5 +403,31 @@ docker compose up -d                                  <span class="c"># tag clip
       <p>MIT licensed. Built for homelabs.</p>
     </div>
   </footer>
+
+  <script>
+    (function () {
+      var btn = document.getElementById('copyBtn');
+      var pre = document.getElementById('cmd');
+      if (!btn || !pre) return;
+      var commands = [
+        '# grab the compose file and env template',
+        'curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/docker-compose.yml',
+        'curl -O https://raw.githubusercontent.com/iamclements/replay-tagger/main/.env.example && mv .env.example .env',
+        '$EDITOR .env',
+        'docker compose run --rm replaytagger plex-auth',
+        'docker compose run --rm replaytagger doctor',
+        'docker compose up -d'
+      ].join('\n');
+      btn.addEventListener('click', function () {
+        var done = function () {
+          btn.textContent = 'Copied \u2713';
+          setTimeout(function () { btn.textContent = 'Copy'; }, 1600);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(commands).then(done).catch(done);
+        } else { done(); }
+      });
+    })();
+  </script>
 </body>
 </html>
