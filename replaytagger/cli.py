@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import sys
 import time
+from collections import defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -208,6 +209,7 @@ def _run_youtube_sync_pass(
     ]
 
     uploaded = skipped = 0
+    skip_reasons: dict[str, int] = defaultdict(int)
     for clip in clips:
         game_name = _resolve_game(clip.parent.name, config.game_name_map)
         bound = log.bind(file=clip.name, game=game_name)
@@ -218,10 +220,13 @@ def _run_youtube_sync_pass(
             or db.get_youtube_id(clip) is not None
         ):
             skipped += 1
+            skip_reasons["already_uploaded"] += 1
             continue
 
         if db.get_first_seen(clip) is None:
             bound.debug("skipped_sync", reason="not_tagged")
+            skipped += 1
+            skip_reasons["not_tagged"] += 1
             continue
 
         first_seen = db.get_first_seen(clip)
@@ -234,6 +239,7 @@ def _run_youtube_sync_pass(
                     required=config.youtube.upload_after_days,
                 )
                 skipped += 1
+                skip_reasons["deferred"] += 1
                 continue
 
         try:
@@ -269,7 +275,7 @@ def _run_youtube_sync_pass(
         except Exception as exc:
             bound.error("upload_failed", error=str(exc))
 
-    log.info("youtube_sync_complete", uploaded=uploaded, skipped=skipped)
+    log.info("youtube_sync_complete", uploaded=uploaded, skipped=skipped, **skip_reasons)
 
 
 def _process_file(
