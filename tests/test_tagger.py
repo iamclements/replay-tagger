@@ -109,3 +109,20 @@ def test_tag_skips_existing_genre_without_force(tagger: Tagger, tmp_path: Path) 
         result = tagger.tag(clip, "Apex Legends", force=False)
 
     assert result is False
+
+
+def test_tag_retags_mismatched_genre_without_force(tagger: Tagger, tmp_path: Path) -> None:
+    clip = tmp_path / "Apex Legends" / "clip.mp4"
+    clip.parent.mkdir()
+    clip.write_bytes(b"fake")
+
+    succeeded = MagicMock(returncode=0, stderr="")
+
+    with patch.object(tagger, "get_genre", return_value="Old Game"):
+        with patch("subprocess.run", return_value=succeeded):
+            with patch("replaytagger.tagger.Path.replace"):
+                with patch("os.utime"):
+                    with patch("pathlib.Path.exists", return_value=True):
+                        result = tagger.tag(clip, "Apex Legends", force=False)
+
+    assert result is True

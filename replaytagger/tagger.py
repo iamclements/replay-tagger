@@ -77,8 +77,12 @@ class Tagger:
         """
         bound = log.bind(file=file_path.name, game=game_name)
 
-        if not force and self.get_genre(file_path) is not None:
-            bound.debug("skipped", reason="genre_already_set")
+        # Only skip when the genre already matches this game. A genre set to
+        # something else (stale value, wrong game, carried over from a copied
+        # file) must be corrected, not left alone - otherwise the file never
+        # enters the DB and is silently skipped by every future scan and sync.
+        if not force and self.get_genre(file_path) == game_name:
+            bound.debug("skipped", reason="genre_already_correct")
             return False
 
         if dry_run:
