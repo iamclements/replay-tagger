@@ -9,7 +9,8 @@ import pytest
 import yaml
 from click.testing import CliRunner
 
-from replaytagger.cli import main
+from replaytagger.cli import _run_youtube_sync_pass, main
+from replaytagger.config import AppConfig, YouTubeConfig
 from replaytagger.db import StateDB
 
 
@@ -318,3 +319,32 @@ def test_health_stale_heartbeat(runner: CliRunner, tmp_path: Path) -> None:
     os.utime(health_file, (stale, stale))
     result = runner.invoke(main, ["--config", str(cfg), "health"])
     assert result.exit_code == 1
+
+
+# ── youtube-sync ──────────────────────────────────────────────────────────────
+
+
+def test_youtube_sync_counts_and_reports_not_tagged_skips(tmp_path: Path) -> None:
+    """A clip that was never mark_tagged (e.g. the genre-mismatch trap) must
+    still be counted in `skipped` and surfaced in the reason breakdown, not
+    silently dropped from both."""
+    clips_dir = tmp_path / "clips"
+    data_dir = tmp_path / "data"
+    clips_dir.mkdir()
+    data_dir.mkdir()
+    _fake_clip(clips_dir)
+
+    config = AppConfig(clips_dir=clips_dir, data_dir=data_dir, youtube=YouTubeConfig(enabled=True))
+    db = StateDB(data_dir / "state.db")
+    youtube = MagicMock()
+
+    with patch("replaytagger.cli.log") as mock_log:
+        _run_youtube_sync_pass(config, youtube, db, notifier=None)
+
+    youtube.upload.assert_not_called()
+    complete_call = next(
+        c for c in mock_log.info.call_args_list if c.args[0] == "youtube_sync_complete"
+    )
+    assert complete_call.kwargs["uploaded"] == 0
+    assert complete_call.kwargs["skipped"] == 1
+    assert complete_call.kwargs["not_tagged"] == 1
