@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.7.1] - 2026-08-04
+
+### Fixed
+- `Tagger.tag()` skipped any file with a genre tag already set, regardless of value, instead of checking whether it matched the resolved game name. A stale or mismatched genre (carried over from a copied file, or written by other software) meant the file never entered the state database, so it was silently and permanently skipped by every future scan and by `youtube-sync`. The skip now only applies when the existing genre already matches the folder's resolved game name.
+- `youtube-sync`'s summary log undercounted skips: the `not_tagged` skip path fell through without incrementing the `skipped` counter and gave no indication of why files were skipped. The `youtube_sync_complete` log line now reports a per-reason breakdown (`already_uploaded`, `not_tagged`, `deferred`).
+
 ## [2.7.0] - 2026-06-18
 
 ### Added
