@@ -81,7 +81,7 @@
       background: rgba(7, 11, 22, 0.72);
       border-bottom: 1px solid var(--border-soft);
     }
-    nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; height: 66px; }
+    nav .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 66px; padding-top: 12px; padding-bottom: 12px; flex-wrap: wrap; }
     nav .brand { display: flex; align-items: center; gap: 11px; font-weight: 700; font-size: 1.12rem; letter-spacing: -0.01em; color: var(--text); }
     nav .brand img { width: 32px; height: 32px; border-radius: 8px; }
     nav .actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -214,6 +214,17 @@
     @media (max-width: 560px) {
       nav .brand span { display: none; }
     }
+    @media (max-width: 420px) {
+      .wrap { padding: 0 16px; }
+      nav .actions { gap: 8px; }
+      .nav-ghost, .nav-cta { padding: 7px 12px; font-size: 0.82rem; }
+      .nav-ghost .label { display: none; }
+      header h1 { font-size: 1.9rem; line-height: 1.15; }
+      .tagline { font-size: 0.95rem; }
+      .trust { gap: 8px 16px; font-size: 0.8rem; }
+      .cta { flex-direction: column; align-items: stretch; gap: 10px; }
+      .btn { width: 100%; justify-content: center; padding: 13px 16px; font-size: 0.92rem; }
+    }
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
       * { transition: none !important; animation: none !important; }
@@ -225,7 +236,7 @@
     <div class="wrap">
       <a class="brand" href="#top"><img src="images/logo.svg" alt=""><span>ReplayTagger</span></a>
       <div class="actions">
-        <a class="nav-ghost" href="https://github.com/iamclements/replay-tagger"><span>★</span> Star on GitHub</a>
+        <a class="nav-ghost" href="https://github.com/iamclements/replay-tagger"><span>★</span> <span class="label">Star on GitHub</span></a>
         <a class="nav-cta" href="#quickstart">Get started</a>
       </div>
     </div>
