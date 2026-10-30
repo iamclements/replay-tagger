@@ -83,3 +83,16 @@ def test_webhook_type_env_overrides_autodetect(
     monkeypatch.setenv("WEBHOOK_TYPE", "generic")
     cfg = load_config(p)
     assert cfg.notifications.webhooks[0].type == "generic"
+
+
+def test_poll_interval_defaults_to_disabled(tmp_path: Path) -> None:
+    cfg = load_config(tmp_path / "missing.yaml")
+    assert cfg.poll_interval_seconds == 0
+
+
+def test_poll_interval_from_env_overrides_config(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    p = _write_config(tmp_path, {"poll_interval_seconds": 30})
+    monkeypatch.setenv("POLL_INTERVAL_SECONDS", "60")
+    assert load_config(p).poll_interval_seconds == 60

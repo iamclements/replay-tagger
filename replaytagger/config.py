@@ -61,6 +61,7 @@ class AppConfig:
     ffprobe_path: str = "ffprobe"
     ffmpeg_temp_dir: Path | None = None
     debounce_seconds: int = 10
+    poll_interval_seconds: int = 0
     game_name_map: dict[str, str] = field(default_factory=dict)
     plex: PlexConfig = field(default_factory=PlexConfig)
     youtube: YouTubeConfig = field(default_factory=YouTubeConfig)
@@ -171,6 +172,7 @@ def load_config(config_path: Path) -> AppConfig:
     notifications = NotificationsConfig(webhooks=_yaml_webhooks)
 
     debounce_seconds = _env_int("DEBOUNCE_SECONDS", data, "debounce_seconds", 10)
+    poll_interval_seconds = _env_int("POLL_INTERVAL_SECONDS", data, "poll_interval_seconds", 0)
 
     _temp_dir_raw = os.environ.get("FFMPEG_TEMP_DIR", data.get("ffmpeg_temp_dir"))
     ffmpeg_temp_dir = Path(_temp_dir_raw) if _temp_dir_raw else None
@@ -198,6 +200,7 @@ def load_config(config_path: Path) -> AppConfig:
         ffprobe_path=data.get("ffprobe_path", "ffprobe"),
         ffmpeg_temp_dir=ffmpeg_temp_dir,
         debounce_seconds=debounce_seconds,
+        poll_interval_seconds=poll_interval_seconds,
         game_name_map=_build_game_name_map(data.get("game_name_map", {})),
         plex=plex,
         youtube=youtube,

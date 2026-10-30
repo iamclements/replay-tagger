@@ -35,6 +35,11 @@ ffprobe_path: ffprobe
 # Seconds to wait after a file event before processing (lets Syncthing finish writing)
 debounce_seconds: 10
 
+# Poll the clips folder on this interval (seconds) instead of relying on inotify.
+# Set to 30-60 when clips_dir is an NFS/SMB mount: inotify does not fire for
+# files written by other hosts, so the watcher never sees them. 0 = use inotify.
+poll_interval_seconds: 0
+
 # ── Game name overrides (optional) ────────────────────────────────────────────
 # Maps clip folder names to the game name written into the genre tag and used
 # for Plex collections. Only needed when your capture tool produces folder names

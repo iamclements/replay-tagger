@@ -405,6 +405,7 @@ All settings can be configured via `.env`. Secrets must use env vars and never g
 | `PLEX_VERIFY_SSL` | Set to `false` if Plex uses a self-signed cert (default: `true`) |
 | `STEAMGRIDDB_API_KEY` | Optional - free API key from [steamgriddb.com](https://www.steamgriddb.com/profile/preferences/api); when set, fetches portrait artwork from SteamGridDB and uploads it to Plex when a new collection is created. Covers Steam, Ubisoft Connect, Battle.net, and community-submitted art for modded clients. |
 | `DEBOUNCE_SECONDS` | Seconds to wait after a file event before processing (default: `10`) |
+| `POLL_INTERVAL_SECONDS` | Poll the clips folder on this interval instead of using inotify (default: `0`, disabled). Set to `30`-`60` when `CLIPS_DIR` is an NFS/SMB mount; inotify never fires for files written by other hosts, so the watcher silently misses new clips. |
 | `FFMPEG_TEMP_DIR` | Directory for ffmpeg temp files during tagging. Set to `/app/data` if Syncthing causes `Device or resource busy` errors on clips. |
 | `YOUTUBE_CLIENT_ID` | GCP OAuth client ID |
 | `YOUTUBE_CLIENT_SECRET` | GCP OAuth client secret |
