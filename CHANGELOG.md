@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.0] - 2026-10-29
+
+### Added
+- `poll_interval_seconds` config key / `POLL_INTERVAL_SECONDS` env var (default `0`, inotify as before). When set, the watcher polls the clips folder on that interval using watchdog's `PollingObserver`. Set it to `30`-`60` when `clips_dir` is an NFS/SMB mount: inotify never fires for files written by other hosts, so the watcher stayed healthy but silently missed new clips until the next restart, leaving them reported as `not_tagged` by `youtube-sync`. The `watching` log line now reports the watch `mode`, and `config show` lists the new key.
+
+### Changed
+- Docker base image moved from `python:3.12-slim` to `python:3.14-slim`. CI now also tests Python 3.13 and 3.14.
+
+### Security
+- Floor `urllib3>=2.8.0` (CVE-2026-97687, CVE-2026-97688, CVE-2026-97689).
+- Remove pip, setuptools, and wheel from the runtime image. Nothing uses them at runtime, and they carried setuptools 70.3.0 (CVE-2025-47273, CVE-2026-59890) and a vendored msgpack 1.1.2 (GHSA-6v7p-g79w-8964).
+
 ## [2.7.1] - 2026-08-04
 
 ### Fixed
