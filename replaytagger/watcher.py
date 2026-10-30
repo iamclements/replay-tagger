@@ -9,6 +9,8 @@ from pathlib import Path
 import structlog
 from watchdog.events import FileCreatedEvent, FileModifiedEvent, FileSystemEventHandler
 from watchdog.observers import Observer
+from watchdog.observers.api import BaseObserver
+from watchdog.observers.polling import PollingObserver
 
 log = structlog.get_logger(__name__)
 
@@ -86,6 +88,7 @@ def watch(
     heartbeat_path: Path | None = None,
     on_daily_sync: Callable[[], None] | None = None,
     daily_sync_hour: int = 3,
+    poll_interval_seconds: int = 0,
 ) -> None:
     """
     Block indefinitely, calling callback(path) for each new/modified clip.
@@ -95,12 +98,23 @@ def watch(
     If on_daily_sync is provided, it is called once per calendar day when the
     local hour reaches daily_sync_hour (0-23). Used to retry YouTube uploads
     after a quota reset.
+    If poll_interval_seconds > 0, the directory is polled on that interval instead
+    of using inotify. Required for NFS/SMB mounts, where inotify never fires for
+    changes made by other hosts.
     """
     handler = _ClipEventHandler(callback, extensions, debounce_seconds)
-    observer = Observer()
+    observer: BaseObserver = (
+        PollingObserver(timeout=poll_interval_seconds) if poll_interval_seconds > 0 else Observer()
+    )
     observer.schedule(handler, str(clips_dir), recursive=True)
     observer.start()
-    log.info("watching", directory=str(clips_dir), debounce_seconds=debounce_seconds)
+    log.info(
+        "watching",
+        directory=str(clips_dir),
+        debounce_seconds=debounce_seconds,
+        mode="polling" if poll_interval_seconds > 0 else "inotify",
+        poll_interval_seconds=poll_interval_seconds,
+    )
 
     if heartbeat_path:
         heartbeat_path.touch()

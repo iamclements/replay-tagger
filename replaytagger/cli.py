@@ -62,6 +62,8 @@ def _validate_config(config: AppConfig) -> None:
 
     if config.debounce_seconds <= 0:
         errors.append("debounce_seconds must be greater than 0")
+    if config.poll_interval_seconds < 0:
+        errors.append("poll_interval_seconds must be 0 or greater")
 
     if errors:
         for error in errors:
@@ -562,6 +564,7 @@ def watch(ctx: click.Context) -> None:
         heartbeat_path=config.data_dir / ".health",
         on_daily_sync=daily_sync_callback,
         daily_sync_hour=config.youtube.sync_hour,
+        poll_interval_seconds=config.poll_interval_seconds,
     )
 
 
@@ -739,6 +742,7 @@ def config_show(ctx: click.Context) -> None:
     line("ffprobe_path", cfg.ffprobe_path)
     line("ffmpeg_temp_dir", cfg.ffmpeg_temp_dir or "(system default)")
     line("debounce_seconds", cfg.debounce_seconds)
+    line("poll_interval_seconds", cfg.poll_interval_seconds)
     line("steamgriddb_api_key", _redact(cfg.steamgriddb_api_key or ""))
     line("game_name_map", f"{len(cfg.game_name_map)} mapping(s)")
 
