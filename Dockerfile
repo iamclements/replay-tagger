@@ -23,12 +23,15 @@ LABEL org.opencontainers.image.title="ReplayTagger" \
 RUN apt-get update \
     && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends ffmpeg gosu \
-    && rm -rf /var/lib/apt/lists/* \
-    && pip install --no-cache-dir --upgrade pip
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 COPY --from=builder /install /usr/local
+
+# pip and setuptools are not needed at runtime. Removing them drops their bundled
+# copies of msgpack and setuptools, which the image scan flags and no pip release fixes.
+RUN python -m pip uninstall -y pip setuptools wheel
 
 # Create non-root user; entrypoint will remap UID/GID at runtime via PUID/PGID
 RUN useradd --create-home --uid 1000 replaytagger \
