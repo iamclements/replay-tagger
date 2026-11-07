@@ -8,10 +8,13 @@ from pathlib import Path
 from urllib import request
 from urllib.error import URLError
 
+from replaytagger.fsutil import write_private
+
 PLEX_API = "https://plex.tv/api/v2"
 PRODUCT = "ReplayTagger"
 POLL_INTERVAL = 2
 TIMEOUT_SECONDS = 120
+HTTP_TIMEOUT = 15
 
 
 def _client_id(data_dir: Path) -> str:
@@ -21,7 +24,7 @@ def _client_id(data_dir: Path) -> str:
     if path.exists():
         return path.read_text().strip()
     client_id = str(uuid.uuid4())
-    path.write_text(client_id)
+    write_private(path, client_id)
     return client_id
 
 
@@ -46,7 +49,7 @@ def authenticate(data_dir: Path) -> str:
         data=b"strong=true",
     )
     try:
-        with request.urlopen(req) as resp:
+        with request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
             pin = json.loads(resp.read())
     except URLError as exc:
         raise RuntimeError(f"Could not reach plex.tv: {exc}") from exc
@@ -76,7 +79,7 @@ def authenticate(data_dir: Path) -> str:
 
         try:
             req = request.Request(f"{PLEX_API}/pins/{pin_id}", headers=headers)
-            with request.urlopen(req) as resp:
+            with request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
                 result = json.loads(resp.read())
         except URLError:
             continue

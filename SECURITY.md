@@ -10,7 +10,7 @@ Only the latest release receives security fixes.
 - **YouTube OAuth token** - grants upload access to your YouTube account; stored in `data/youtube_token.json`
 - **YouTube OAuth credentials** - client ID and secret from Google Cloud Console; stored in `data/youtube_credentials.json` or passed via env vars
 
-None of these files are ever committed to the repository. `.env`, `data/`, and credential files are listed in `.gitignore`.
+Token files written by ReplayTagger (`plex_token`, `youtube_token.json`, `plex_client_id`) are created with owner-only (`0600`) permissions. None of these files are ever committed to the repository. `.env`, `data/`, and credential files are listed in `.gitignore`.
 
 ## Reporting a vulnerability
 

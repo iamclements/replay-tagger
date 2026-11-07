@@ -22,6 +22,7 @@ from replaytagger import __version__
 from replaytagger import logging as rt_logging
 from replaytagger.config import AppConfig, load_config
 from replaytagger.db import StateDB
+from replaytagger.fsutil import write_private
 from replaytagger.tagger import Tagger, compute_content_hash
 from replaytagger.youtube_client import YouTubeQuotaExceededError
 
@@ -577,8 +578,7 @@ def plex_auth(ctx: click.Context) -> None:
 
     token = authenticate(config.data_dir)
     token_file = config.data_dir / "plex_token"
-    token_file.parent.mkdir(parents=True, exist_ok=True)
-    token_file.write_text(token)
+    write_private(token_file, token)
     click.echo("\nAuthorization successful!")
     click.echo(f"Token saved to {token_file}; no environment variable needed.")
     click.echo(f"To set it as an env var instead:\n\n  PLEX_TOKEN={token}\n")
