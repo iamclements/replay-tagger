@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.8.1] - 2026-11-07
+
+### Fixed
+- `plex-auth` and `youtube-auth` no longer hang indefinitely on a stalled connection. The Plex PIN flow and the YouTube device flow now time out HTTP requests after 15 seconds.
+
+### Security
+- Token files (`plex_token`, `youtube_token.json`, `plex_client_id`) are now written with owner-only (`0600`) permissions. Previously they used the default umask. Existing files are tightened the next time they are rewritten.
+- Floor `pyasn1>=0.6.5` (transitive via google-auth) to clear PYSEC-2026-3455, PYSEC-2026-3456, PYSEC-2026-3457 and CVE-2026-119194 to CVE-2026-119197.
+
 ## [2.8.0] - 2026-10-29
 
 ### Added
