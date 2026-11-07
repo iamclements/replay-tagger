@@ -20,6 +20,8 @@ from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
 
+from replaytagger.fsutil import write_private
+
 log = structlog.get_logger(__name__)
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
@@ -27,6 +29,7 @@ YOUTUBE_API_SERVICE = "youtube"
 YOUTUBE_API_VERSION = "v3"
 _DEVICE_CODE_URL = "https://oauth2.googleapis.com/device/code"
 _TOKEN_URL = "https://oauth2.googleapis.com/token"
+_HTTP_TIMEOUT = 15
 _QUOTA_REASONS = {"quotaExceeded", "dailyLimitExceeded", "uploadLimitExceeded"}
 
 
@@ -78,7 +81,7 @@ class YouTubeClient:
         data = urllib.parse.urlencode({"client_id": client_id, "scope": " ".join(SCOPES)}).encode()
         try:
             with urllib.request.urlopen(
-                urllib.request.Request(_DEVICE_CODE_URL, data=data)
+                urllib.request.Request(_DEVICE_CODE_URL, data=data), timeout=_HTTP_TIMEOUT
             ) as resp:
                 code_resp: dict[str, Any] = json.loads(resp.read())
         except urllib.error.HTTPError as exc:
@@ -133,7 +136,7 @@ class YouTubeClient:
             ).encode()
             try:
                 with urllib.request.urlopen(
-                    urllib.request.Request(_TOKEN_URL, data=token_data)
+                    urllib.request.Request(_TOKEN_URL, data=token_data), timeout=_HTTP_TIMEOUT
                 ) as resp:
                     token_resp: dict[str, Any] = json.loads(resp.read())
             except urllib.error.HTTPError as exc:
@@ -221,8 +224,7 @@ class YouTubeClient:
             )
             log.debug("youtube_refresh_token_carried_over")
 
-        self.token_file.parent.mkdir(parents=True, exist_ok=True)
-        self.token_file.write_text(creds.to_json())  # type: ignore[no-untyped-call]
+        write_private(self.token_file, creds.to_json())  # type: ignore[no-untyped-call]
         log.info("youtube_token_saved", path=str(self.token_file))
 
         self._service = build(
